@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+        <div class="admin-page">
+            <h1 class="admin-titulo">Gestión de Productos</h1>
+
+            <!-- Mensajes flash -->
+            <div class="admin-alert admin-alert--ok" th:if="${ok}" th:text="${ok}"></div>
+            <div class="admin-alert admin-alert--error" th:if="${error}" th:text="${error}"></div>
+
+            <!-- Formulario: Añadir producto -->
+            <form th:action="@{/admin/productos/crear}" method="post" class="admin-form-nuevo" onsubmit="return prepararCategoriaNuevo(this)">
+                <input type="text" name="nombre" placeholder="Nombre del plato" required class="admin-input" />
+                <input type="number" name="precio" placeholder="Precio" step="0.01" min="0" max="9999.99" required
+                    class="admin-input admin-input--precio" />
+                
+                <div class="admin-cat-input-group">
+                    <select id="select-cat-nuevo" class="admin-input admin-select-cat" onchange="cambiarCategoriaNuevo(this)">
+                        <option value="" disabled selected>-- Elegir categoría --</option>
+                        <option th:each="cat : ${categoriasExistentes}" th:value="${cat}" th:text="${cat}"></option>
+                        <option value="__NUEVA__">➕ Crear nueva categoría...</option>
+                    </select>
+                    <div id="caja-cat-nueva" class="admin-caja-nueva-cat" style="display:none;">
+                        <input type="text" id="input-cat-nueva" placeholder="Escribe nueva categoría" class="admin-input admin-input--nueva-cat"
+                            onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaCategoriaDirecto();}" />
+                        <button type="button" class="admin-btn admin-btn--confirmar-cat" onclick="confirmarNuevaCategoriaDirecto()" title="Añadir a la lista de categorías">+ Añadir</button>
+                        <button type="button" class="admin-btn admin-btn--volver-cat" onclick="volverACategoriaExistente()" title="Volver a existentes">↩</button>
+                    </div>
+                    <input type="hidden" name="categoria" id="hidden-cat-nuevo" required />
+                </div>
+
+                <button type="submit" class="admin-btn admin-btn--crear">+ AÑADIR NUEVO PLATO</button>
+            </form>
+
+            <!-- Barra de buscador de platos y filtro de categoría -->
+            <div class="admin-buscador-bar">
+                <div class="admin-buscador-input-group">
+                    <span class="admin-buscador-icono">🔍</span>
+                    <input type="text" id="buscador-platos" class="admin-input admin-buscador-input"
+                        placeholder="Escribe el nombre del plato a buscar..." oninput="filtrarPlatosEnVivo()" />
+                </div>
+                <div class="admin-buscador-cat-group">
+                    <select id="filtro-categoria" class="admin-input admin-buscador-select" onchange="filtrarPlatosEnVivo()">
+                        <option value="">Todas las categorías</option>
+                        <option th:each="cat : ${categoriasExistentes}" th:value="${cat}" th:text="${cat}"></option>
+                    </select>
+                </div>
+                <button type="button" class="admin-btn admin-btn--limpiar-filtro" onclick="limpiarFiltroBuscador()" title="Mostrar todas las secciones">Limpiar</button>
+            </div>
+
+            <!-- Tabla de productos -->
+            <table class="admin-tabla">
+                <thead>
+                    <tr>
+                        <th>
+                            <div class="admin-th-flex">
+                                <div class="admin-toggle-all-group">
+                                    <button type="button" class="admin-btn-toggle-all" id="btn-toggle-todas"
+                                            onclick="toggleTodasSecciones(this)" title="Expandir / Retraer todas">＋</button>
+                                </div>
+                                <span class="admin-th-titulo">Nombre</span>
+                            </div>
+                        </th>
+                        <th>Precio</th>
+                        <th>Categoría</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <th:block th:each="p, pStat : ${productos}">
+                        <!-- Fila de cabecera de sección mayor: triangulito hacia abajo al lado de la sección -->
+                        <tr th:if="${pStat.first or p.categoria != productos[pStat.index - 1].categoria}"
+                            class="admin-seccion-header-row"
+                            th:data-cat="${p.categoria}"
+                            onclick="toggleSeccionCategoria(this.getAttribute('data-cat'), this)"
+                            title="Haz clic para expandir o retraer esta sección">
+                            <td colspan="4" class="admin-seccion-header-cell">
+                                <div class="admin-seccion-header-inner">
+                                    <div class="admin-seccion-header-left">
+                                        <span class="admin-seccion-btn-triangulo">▼</span>
+                                        <span class="admin-seccion-titulo" th:text="${p.categoria}">Categoría</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Fila del plato (cerrada al entrar) -->
+                        <tr class="fila-plato" th:data-categoria-row="${p.categoria}" style="display:none">
+                            <td th:text="${p.nombre}" style="font-weight: 600;"></td>
+                            <td class="admin-td-precio" th:text="${#numbers.formatDecimal(p.precio, 1, 2)} + ' €'"></td>
+                            <td th:text="${p.categoria}"></td>
+                            <td class="admin-acciones">
+                                <button type="button" class="admin-btn admin-btn--editar" th:data-id="${p.id}"
+                                    onclick="toggleEditar(this.getAttribute('data-id'))">✏️ EDITAR PLATO</button>
+                                <form th:action="@{/admin/productos/{id}/eliminar(id=${p.id})}" method="post"
+                                    style="display:inline"
+                                    onsubmit="return confirm('¿Eliminar este plato definitivamente?')">
+                                    <button type="submit" class="admin-btn admin-btn--eliminar">🗑️ BORRAR PLATO</button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Fila de edición oculta por cada producto -->
+                        <tr th:id="'editar-' + ${p.id}" class="fila-edicion" th:data-categoria-row="${p.categoria}" style="display:none">
+                            <td colspan="4">
+                                <form th:action="@{/admin/productos/{id}/editar(id=${p.id})}" method="post"
+                                    class="admin-form-editar"
+                                    th:data-id="${p.id}"
+                                    onsubmit="return prepararCategoriaEditar(this, this.getAttribute('data-id'))">
+                                    <input type="text" name="nombre" th:value="${p.nombre}" required class="admin-input" />
+                                    <input type="number" name="precio" th:value="${p.precio}" step="0.01" min="0" max="9999.99" required
+                                        class="admin-input admin-input--precio" />
+                                    
+                                    <div class="admin-cat-input-group">
+                                        <select th:id="'select-cat-edit-' + ${p.id}" class="admin-input admin-select-cat"
+                                            th:data-id="${p.id}"
+                                            onchange="cambiarCategoriaEditar(this)">
+                                            <option th:each="cat : ${categoriasExistentes}"
+                                                    th:value="${cat}"
+                                                    th:text="${cat}"
+                                                    th:selected="${cat == p.categoria}"></option>
+                                            <option value="__NUEVA__">➕ Crear nueva categoría...</option>
+                                        </select>
+                                        <div th:id="'caja-cat-nueva-edit-' + ${p.id}" class="admin-caja-nueva-cat" style="display:none;">
+                                            <input type="text" th:id="'input-cat-nueva-edit-' + ${p.id}" placeholder="Nueva categoría" class="admin-input admin-input--nueva-cat"
+                                                th:data-id="${p.id}"
+                                                onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaCategoriaEditDirecto(this.getAttribute('data-id'));}" />
+                                            <button type="button" class="admin-btn admin-btn--confirmar-cat"
+                                                th:data-id="${p.id}"
+                                                onclick="confirmarNuevaCategoriaEditDirecto(this.getAttribute('data-id'))" title="Añadir a la lista de categorías">+ Añadir</button>
+                                            <button type="button" class="admin-btn admin-btn--volver-cat"
+                                                th:data-id="${p.id}"
+                                                onclick="volverACategoriaExistenteEdit(this.getAttribute('data-id'))" title="Volver a existentes">↩</button>
+                                        </div>
+                                        <input type="hidden" name="categoria" th:id="'hidden-cat-edit-' + ${p.id}" th:value="${p.categoria}" required />
+                                    </div>
+
+                                    <button type="submit" class="admin-btn admin-btn--guardar">Guardar</button>
+                                    <button type="button" class="admin-btn admin-btn--cancelar" th:data-id="${p.id}"
+                                        onclick="toggleEditar(this.getAttribute('data-id'))">Cancelar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </th:block>
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            function toggleSeccionCategoria(categoria, headerRow) {
+                var platoFilas = document.querySelectorAll('tr.fila-plato[data-categoria-row="' + categoria + '"]');
+                var edicionFilas = document.querySelectorAll('tr.fila-edicion[data-categoria-row="' + categoria + '"]');
+                var row = headerRow || document.querySelector('.admin-seccion-header-row[data-cat="' + categoria + '"]');
+                var icono = row ? row.querySelector('.admin-seccion-btn-triangulo') : null;
+
+                var estaAbierta = false;
+                if (platoFilas.length > 0) {
+                    estaAbierta = (platoFilas[0].style.display !== 'none');
+                }
+
+                if (estaAbierta) {
+                    // Cerrar / Retraer (triangulito hacia abajo)
+                    platoFilas.forEach(function(fila) { fila.style.display = 'none'; });
+                    edicionFilas.forEach(function(fila) { fila.style.display = 'none'; });
+                    if (icono) {
+                        icono.textContent = '▼';
+                        icono.classList.remove('admin-seccion-btn-triangulo--abierto');
+                    }
+                } else {
+                    // Abrir / Expandir (triangulito hacia arriba)
+                    platoFilas.forEach(function(fila) { fila.style.display = ''; });
+                    if (icono) {
+                        icono.textContent = '▲';
+                        icono.classList.add('admin-seccion-btn-triangulo--abierto');
+                    }
+                }
+                actualizarBtnToggle();
+            }
+
+            function actualizarBtnToggle() {
+                var btn = document.getElementById('btn-toggle-todas');
+                if (!btn) return;
+                var hayAlgunaAbierta = Array.from(document.querySelectorAll('tr.fila-plato'))
+                    .some(function(fila) { return fila.style.display !== 'none'; });
+                btn.textContent = hayAlgunaAbierta ? '－' : '＋';
+                btn.title = hayAlgunaAbierta ? 'Retraer todas' : 'Expandir todas';
+            }
+
+            function toggleTodasSecciones(btn) {
+                // Condición real: ¿hay alguna fila de plato visible?
+                var hayAlgunaAbierta = Array.from(document.querySelectorAll('tr.fila-plato'))
+                    .some(function(fila) { return fila.style.display !== 'none'; });
+
+                if (hayAlgunaAbierta) {
+                    // Retraer todo
+                    document.querySelectorAll('tr.fila-plato').forEach(function(fila) { fila.style.display = 'none'; });
+                    document.querySelectorAll('tr.fila-edicion').forEach(function(fila) { fila.style.display = 'none'; });
+                    document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                        icono.textContent = '▼';
+                        icono.classList.remove('admin-seccion-btn-triangulo--abierto');
+                    });
+                } else {
+                    // Expandir todo
+                    document.querySelectorAll('tr.fila-plato').forEach(function(fila) { fila.style.display = ''; });
+                    document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                        icono.textContent = '▲';
+                        icono.classList.add('admin-seccion-btn-triangulo--abierto');
+                    });
+                }
+                actualizarBtnToggle();
+            }
+
+            function expandirTodas() {
+                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                    fila.style.display = '';
+                });
+                document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                    icono.textContent = '▲';
+                    icono.classList.add('admin-seccion-btn-triangulo--abierto');
+                });
+            }
+
+            function colapsarTodas() {
+                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                    fila.style.display = 'none';
+                });
+                document.querySelectorAll('tr.fila-edicion').forEach(function(fila) {
+                    fila.style.display = 'none';
+                });
+                document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                    icono.textContent = '▼';
+                    icono.classList.remove('admin-seccion-btn-triangulo--abierto');
+                });
+            }
+
+            function toggleEditar(id) {
+                var fila = document.getElementById('editar-' + id);
+                if (fila) {
+                    fila.style.display = fila.style.display === 'none' ? 'table-row' : 'none';
+                }
+            }
+
+            // Función central para añadir una nueva categoría a TODOS los selects de la página
+            function agregarCategoriaALosSelects(nombreCat) {
+                if (!nombreCat) return '';
+                nombreCat = nombreCat.trim();
+                if (!nombreCat) return '';
+
+                // Formato con primera letra en mayúscula si no tiene
+                nombreCat = nombreCat.charAt(0).toUpperCase() + nombreCat.slice(1);
+
+                // Actualizar todos los selects de categorías en la página
+                var selects = document.querySelectorAll('.admin-select-cat, #filtro-categoria');
+                selects.forEach(function(sel) {
+                    var yaExiste = false;
+                    for (var i = 0; i < sel.options.length; i++) {
+                        if (sel.options[i].value.toLowerCase() === nombreCat.toLowerCase()) {
+                            yaExiste = true;
+                            break;
+                        }
+                    }
+                    if (!yaExiste) {
+                        var opt = document.createElement('option');
+                        opt.value = nombreCat;
+                        opt.textContent = nombreCat;
+
+                        // Insertar antes de la opción __NUEVA__ si existe
+                        var optNueva = sel.querySelector('option[value="__NUEVA__"]');
+                        if (optNueva) {
+                            sel.insertBefore(opt, optNueva);
+                        } else {
+                            sel.appendChild(opt);
+                        }
+                    }
+                });
+
+                return nombreCat;
+            }
+
+            // Gestión de categoría en creación
+            function cambiarCategoriaNuevo(select) {
+                var caja = document.getElementById('caja-cat-nueva');
+                var input = document.getElementById('input-cat-nueva');
+                var hidden = document.getElementById('hidden-cat-nuevo');
+
+                if (select.value === '__NUEVA__') {
+                    select.style.display = 'none';
+                    caja.style.display = 'flex';
+                    input.value = '';
+                    input.focus();
+                    hidden.value = '';
+                } else {
+                    hidden.value = select.value;
+                }
+            }
+
+            function confirmarNuevaCategoriaDirecto() {
+                var input = document.getElementById('input-cat-nueva');
+                var val = (input.value || '').trim();
+                if (!val) {
+                    alert('Por favor, escribe el nombre de la nueva categoría.');
+                    input.focus();
+                    return;
+                }
+                var catFinal = agregarCategoriaALosSelects(val);
+
+                var select = document.getElementById('select-cat-nuevo');
+                var caja = document.getElementById('caja-cat-nueva');
+                var hidden = document.getElementById('hidden-cat-nuevo');
+
+                select.value = catFinal;
+                hidden.value = catFinal;
+                caja.style.display = 'none';
+                select.style.display = '';
+            }
+
+            function volverACategoriaExistente() {
+                var select = document.getElementById('select-cat-nuevo');
+                var caja = document.getElementById('caja-cat-nueva');
+                var hidden = document.getElementById('hidden-cat-nuevo');
+
+                caja.style.display = 'none';
+                select.style.display = '';
+                select.selectedIndex = 0;
+                hidden.value = '';
+            }
+
+            function prepararCategoriaNuevo(form) {
+                // 0. Validar número/código obligatorio y que no esté duplicado
+                var nombreInput = form.querySelector('input[name="nombre"]');
+                var nombreVal = (nombreInput ? nombreInput.value : '').trim();
+                var matchCodigo = nombreVal.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
+                if (!matchCodigo) {
+                    alert('⚠️ El plato debe tener obligatoriamente un número o código identificador (ejemplos: 8, 8b, 8c, P1).');
+                    if (nombreInput) nombreInput.focus();
+                    return false;
+                }
+                var codNuevo = (matchCodigo[1] + matchCodigo[2] + matchCodigo[3]).toLowerCase();
+                var existeDuplicado = false;
+                var nombreDuplicado = '';
+                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                    var tdNombre = fila.querySelector('td:first-child');
+                    if (tdNombre) {
+                        var nExistente = tdNombre.textContent.trim();
+                        var mExistente = nExistente.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
+                        if (mExistente) {
+                            var codEx = (mExistente[1] + mExistente[2] + mExistente[3]).toLowerCase();
+                            if (codEx === codNuevo) {
+                                existeDuplicado = true;
+                                nombreDuplicado = nExistente;
+                            }
+                        }
+                    }
+                });
+                if (existeDuplicado) {
+                    alert('⚠️ Ya existe un plato con el número/código "' + codNuevo.toUpperCase() + '" ("' + nombreDuplicado + '"). Los números de plato no se pueden repetir.');
+                    if (nombreInput) nombreInput.focus();
+                    return false;
+                }
+
+                // 1. Validar precio para que no se rompa la página
+                var precioInput = form.querySelector('input[name="precio"]');
+                var precioVal = parseFloat(precioInput.value);
+                if (isNaN(precioVal) || precioVal < 0) {
+                    alert('Por favor, introduce un precio válido (mayor o igual a 0).');
+                    precioInput.focus();
+                    return false;
+                }
+                if (precioVal > 9999.99) {
+                    alert('El precio es demasiado alto (máximo 9.999,99 €). Por favor, introduce un precio válido.');
+                    precioInput.focus();
+                    return false;
+                }
+
+                // 2. Validar categoría
+                var select = document.getElementById('select-cat-nuevo');
+                var input = document.getElementById('input-cat-nueva');
+                var hidden = document.getElementById('hidden-cat-nuevo');
+
+                if (select.value === '__NUEVA__' || select.style.display === 'none') {
+                    var val = input.value.trim();
+                    if (!val) {
+                        alert('Por favor, escribe el nombre de la nueva categoría.');
+                        input.focus();
+                        return false;
+                    }
+                    var catFinal = agregarCategoriaALosSelects(val);
+                    select.value = catFinal;
+                    hidden.value = catFinal;
+                } else {
+                    if (!select.value) {
+                        alert('Por favor, selecciona una categoría existente o crea una nueva.');
+                        select.focus();
+                        return false;
+                    }
+                    hidden.value = select.value;
+                }
+                return true;
+            }
+
+            // Gestión de categoría en edición
+            function cambiarCategoriaEditar(select) {
+                var id = select.getAttribute('data-id');
+                var caja = document.getElementById('caja-cat-nueva-edit-' + id);
+                var input = document.getElementById('input-cat-nueva-edit-' + id);
+                var hidden = document.getElementById('hidden-cat-edit-' + id);
+
+                if (select.value === '__NUEVA__') {
+                    select.style.display = 'none';
+                    caja.style.display = 'flex';
+                    input.value = '';
+                    input.focus();
+                    hidden.value = '';
+                } else {
+                    hidden.value = select.value;
+                }
+            }
+
+            function confirmarNuevaCategoriaEditDirecto(id) {
+                var input = document.getElementById('input-cat-nueva-edit-' + id);
+                var val = (input.value || '').trim();
+                if (!val) {
+                    alert('Por favor, escribe el nombre de la nueva categoría.');
+                    input.focus();
+                    return;
+                }
+                var catFinal = agregarCategoriaALosSelects(val);
+
+                var select = document.getElementById('select-cat-edit-' + id);
+                var caja = document.getElementById('caja-cat-nueva-edit-' + id);
+                var hidden = document.getElementById('hidden-cat-edit-' + id);
+
+                select.value = catFinal;
+                hidden.value = catFinal;
+                caja.style.display = 'none';
+                select.style.display = '';
+            }
+
+            function volverACategoriaExistenteEdit(id) {
+                var select = document.getElementById('select-cat-edit-' + id);
+                var caja = document.getElementById('caja-cat-nueva-edit-' + id);
+                var hidden = document.getElementById('hidden-cat-edit-' + id);
+
+                caja.style.display = 'none';
+                select.style.display = '';
+                select.selectedIndex = 0;
+                hidden.value = select.value;
+            }
+
+            function prepararCategoriaEditar(form, id) {
+                // 0. Validar número/código obligatorio y que no esté duplicado en otro plato
+                var nombreInput = form.querySelector('input[name="nombre"]');
+                var nombreVal = (nombreInput ? nombreInput.value : '').trim();
+                var matchCodigo = nombreVal.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
+                if (!matchCodigo) {
+                    alert('⚠️ El plato debe tener obligatoriamente un número o código identificador (ejemplos: 8, 8b, 8c, P1).');
+                    if (nombreInput) nombreInput.focus();
+                    return false;
+                }
+                var codNuevo = (matchCodigo[1] + matchCodigo[2] + matchCodigo[3]).toLowerCase();
+                var existeDuplicado = false;
+                var nombreDuplicado = '';
+                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                    var btnEdit = fila.querySelector('.admin-btn--editar');
+                    if (btnEdit && btnEdit.getAttribute('data-id') === String(id)) {
+                        return; // Omitir el propio plato que se edita
+                    }
+                    var tdNombre = fila.querySelector('td:first-child');
+                    if (tdNombre) {
+                        var nExistente = tdNombre.textContent.trim();
+                        var mExistente = nExistente.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
+                        if (mExistente) {
+                            var codEx = (mExistente[1] + mExistente[2] + mExistente[3]).toLowerCase();
+                            if (codEx === codNuevo) {
+                                existeDuplicado = true;
+                                nombreDuplicado = nExistente;
+                            }
+                        }
+                    }
+                });
+                if (existeDuplicado) {
+                    alert('⚠️ Ya existe otro plato con el número/código "' + codNuevo.toUpperCase() + '" ("' + nombreDuplicado + '"). Los números de plato no se pueden repetir.');
+                    if (nombreInput) nombreInput.focus();
+                    return false;
+                }
+
+                // 1. Validar precio
+                var precioInput = form.querySelector('input[name="precio"]');
+                var precioVal = parseFloat(precioInput.value);
+                if (isNaN(precioVal) || precioVal < 0) {
+                    alert('Por favor, introduce un precio válido (mayor o igual a 0).');
+                    precioInput.focus();
+                    return false;
+                }
+                if (precioVal > 9999.99) {
+                    alert('El precio es demasiado alto (máximo 9.999,99 €). Por favor, introduce un precio válido.');
+                    precioInput.focus();
+                    return false;
+                }
+
+                // 2. Validar categoría
+                var select = document.getElementById('select-cat-edit-' + id);
+                var input = document.getElementById('input-cat-nueva-edit-' + id);
+                var hidden = document.getElementById('hidden-cat-edit-' + id);
+
+                if (select.value === '__NUEVA__' || select.style.display === 'none') {
+                    var val = input.value.trim();
+                    if (!val) {
+                        alert('Por favor, escribe el nombre de la nueva categoría.');
+                        input.focus();
+                        return false;
+                    }
+                    var catFinal = agregarCategoriaALosSelects(val);
+                    select.value = catFinal;
+                    hidden.value = catFinal;
+                } else {
+                    hidden.value = select.value;
+                }
+                return true;
+            }
+
+            // Buscador en vivo y filtro por categoría
+            function filtrarPlatosEnVivo() {
+                var query = (document.getElementById('buscador-platos').value || '').trim().toLowerCase();
+                var catFiltro = (document.getElementById('filtro-categoria').value || '').trim();
+
+                var headerRows = document.querySelectorAll('.admin-seccion-header-row');
+
+                if (!query && !catFiltro) {
+                    headerRows.forEach(function(row) {
+                        row.style.display = '';
+                        var cat = row.getAttribute('data-cat');
+                        var icono = row.querySelector('.admin-seccion-btn-triangulo');
+                        if (icono) icono.textContent = '▼';
+                        document.querySelectorAll('tr.fila-plato[data-categoria-row="' + cat + '"]').forEach(function(f) {
+                            f.style.display = 'none';
+                        });
+                    });
+                    return;
+                }
+
+                headerRows.forEach(function(headerRow) {
+                    var cat = headerRow.getAttribute('data-cat');
+                    var matchCat = (!catFiltro || cat === catFiltro);
+
+                    var platos = document.querySelectorAll('tr.fila-plato[data-categoria-row="' + cat + '"]');
+                    var platosCoincidentes = 0;
+
+                    platos.forEach(function(platoFila) {
+                        var textoPlato = platoFila.querySelector('td:first-child').textContent.toLowerCase();
+                        var matchNombre = (!query || textoPlato.includes(query));
+
+                        if (matchCat && matchNombre) {
+                            platoFila.style.display = '';
+                            platosCoincidentes++;
+                        } else {
+                            platoFila.style.display = 'none';
+                        }
+                    });
+
+                    var icono = headerRow.querySelector('.admin-seccion-btn-triangulo');
+
+                    if (matchCat && platosCoincidentes > 0) {
+                        headerRow.style.display = '';
+                        if (icono) icono.textContent = '▲';
+                    } else {
+                        headerRow.style.display = 'none';
+                        if (icono) icono.textContent = '▼';
+                    }
+                });
+            }
+
+            function limpiarFiltroBuscador() {
+                document.getElementById('buscador-platos').value = '';
+                document.getElementById('filtro-categoria').value = '';
+                filtrarPlatosEnVivo();
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Al entrar todas las secciones están cerradas
+                colapsarTodas();
+            });
+        </script>
+    </main>
+</body>
+
+</html>

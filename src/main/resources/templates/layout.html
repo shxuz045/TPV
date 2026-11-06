@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="es"
+      th:fragment="layout(content)">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TPV - Restaurante ChinaTown</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<body>
+    <!-- ===== HEADER GLOBAL UNIFICADO ===== -->
+    <header class="app-header">
+        <div class="header-left">
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/productos}" class="header-brand">
+                <span class="brand-text">Restaurante ChinaTown</span>
+            </a>
+            <a sec:authorize="!hasRole('ADMIN')" th:href="@{/sala}" class="header-brand">
+                <span class="brand-text">Restaurante ChinaTown</span>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <!-- Menú de sesión (se muestra según la cuenta que haya entrado) -->
+            <div class="user-menu-container"
+                 th:if="${(#authentication != null and #authentication.name != 'anonymousUser') or (cajeroUsername != null and cajeroUsername != '')}">
+                <button type="button" class="user-menu-btn" id="userMenuBtn" aria-haspopup="true" aria-expanded="false" title="Opciones de perfil">
+                    <span class="user-name" th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">Usuario</span>
+                    <span class="user-arrow"></span>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <div sec:authorize="hasRole('ADMIN')" class="dropdown-admin-link">
+                        <a th:href="@{/admin/productos}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            🍽️ Gestión de Productos
+                        </a>
+                        <a th:href="@{/admin/historial/eliminaciones}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            🗑️ Historial de Eliminaciones
+                        </a>
+                        <a th:href="@{/admin/historial/cambios}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            📝 Historial de Cambios
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    </div>
+                    <div sec:authorize="!hasRole('ADMIN')">
+                        <div class="dropdown-header">
+                            <p class="dropdown-title">Sesión iniciada</p>
+                            <p class="dropdown-username" th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">Usuario</p>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                    </div>
+                    <form th:action="@{/logout}" method="post" class="dropdown-logout-form">
+                        <button type="submit" class="dropdown-logout-btn">
+                            Salir de la cuenta
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <th:block th:replace="${content}" />
+
+    <!-- Script para abrir/cerrar el desplegable de perfil -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userMenuContainer = document.querySelector('.user-menu-container');
+
+            if (userMenuBtn && userMenuContainer) {
+                userMenuBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    userMenuContainer.classList.toggle('open');
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!userMenuContainer.contains(e.target)) {
+                        userMenuContainer.classList.remove('open');
+                    }
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        userMenuContainer.classList.remove('open');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

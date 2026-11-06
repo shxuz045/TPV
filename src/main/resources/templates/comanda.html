@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+
+        <!-- ===== CONTENIDO PRINCIPAL ===== -->
+        <div class="comanda-layout">
+
+            <!-- ── Panel izquierdo ── -->
+            <aside class="comanda-left">
+
+                <!-- Cabecera y lista de pedido -->
+                <div class="comanda-list" id="comanda-list">
+                    <div class="comanda-header">
+                        <div class="comanda-header__info">
+                            <span class="comanda-header__tipo" th:text="${tipoServicio == 'RECOGIDA' ? 'RECOGIDA' : (tipoServicio == 'DOMICILIO' ? 'DOMICILIO' : 'MESA')}">MESA</span>
+                            <span class="comanda-header__numero" id="comanda-numero-display" th:text="${comanda != null ? (comanda.mesa.replace('Mesa ', '').replace('Recogida ', '')) : '1'}">2</span>
+                        </div>
+                        <div th:if="${tipoServicio == 'DOMICILIO' and comanda != null and comanda.nombreCliente != null}" class="comanda-domicilio-info">
+                            <div class="comanda-domicilio-cliente" th:text="${comanda.nombreCliente + (comanda.telefonoCliente != null and !#strings.isEmpty(comanda.telefonoCliente) ? ' · 📞 ' + comanda.telefonoCliente : '')}">Cliente</div>
+                            <div class="comanda-domicilio-direccion" th:text="${'📍 ' + comanda.direccionCliente}">Dirección</div>
+                            <div class="comanda-domicilio-hora" th:text="${'⏰ ' + comanda.horaEntregaProgramada}">Al momento</div>
+                        </div>
+                        <div class="comanda-header__botones">
+                            <a th:href="${tipoServicio == 'RECOGIDA' ? '/recogida' : (tipoServicio == 'DOMICILIO' ? '/domicilio' : '/sala')}"
+                               class="comanda-btn-header comanda-btn-header--atras">Atrás</a>
+                            <button th:if="${tipoServicio == 'SALA'}" type="button"
+                                    class="comanda-btn-header comanda-btn-header--recogida"
+                                    id="btn-mover-recogida" title="Pasar pedido a Recogida">
+                                Pasar a Recogida
+                            </button>
+                            <button th:if="${tipoServicio == 'SALA'}" type="button"
+                                    class="comanda-btn-header comanda-btn-header--mesa"
+                                    id="btn-cambiar-mesa" title="Cambiar a otra mesa libre">
+                                Cambiar Mesa
+                            </button>
+                        </div>
+                    </div>
+
+                    <ul class="comanda-list__items" id="comanda-items">
+                        <!-- Las líneas se renderizan dinámicamente con JS -->
+                    </ul>
+                    <div id="comanda-vacia-msg" class="comanda-vacia-msg" style="display: none;">
+                        No hay productos en esta comanda.<br>Pulsa un producto para añadirlo.
+                    </div>
+                </div>
+
+                <!-- Precio total -->
+                <div class="comanda-total">
+                    <span class="comanda-total__label">PRECIO</span>
+                    <span class="comanda-total__value" id="comanda-total-value">0.00 €</span>
+                </div>
+
+                <!-- Botón Cobrar + zona inferior -->
+                <div class="comanda-bottom">
+                    <div class="comanda-resumen" id="comanda-resumen">
+                        <div class="comanda-resumen__detalles">
+                            <span id="resumen-articulos" class="resumen-articulos-text">0 artículos</span>
+                            <br>
+                            <span class="resumen-servicio-text" th:text="${'Servicio: ' + (tipoServicio != null ? tipoServicio : 'SALA')}">Servicio: SALA</span>
+                        </div>
+                    </div>
+                    <button class="comanda-cobrar" id="btn-cobrar" type="button" title="Cobrar y cerrar comanda">
+                        <span>C</span><span>O</span><span>B</span><span>R</span><span>A</span><span>R</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- ── Panel derecho: productos ── -->
+            <section class="comanda-products">
+
+                <!-- Vista 1: Categorías -->
+                <div id="categorias-grid" class="categorias-grid">
+                    <!-- Generado por JS -->
+                </div>
+
+                <!-- Vista 2: Platos de la categoría seleccionada -->
+                <div id="platos-categoria-view" style="display:none;">
+                    <div class="platos-cat-header">
+                        <button type="button" class="platos-cat-volver" onclick="volverACategorias()">← Volver</button>
+                        <span class="platos-cat-titulo" id="platos-cat-titulo"></span>
+                    </div>
+                    <div class="products-grid" id="products-grid">
+                        <!-- Botones de platos, ocultos, se filtran por JS -->
+                    </div>
+                </div>
+
+                <!-- Botones de platos (ocultos, fuente de datos) -->
+                <div style="display:none;" id="all-products-source">
+                    <button th:each="p : ${productos}"
+                            th:text="${p.nombre}"
+                            th:data-id="${p.id}"
+                            th:data-nombre="${p.nombre}"
+                            th:data-precio="${p.precio}"
+                            th:data-categoria="${p.categoria}"
+                            class="product-btn product-btn--source"
+                            type="button">
+                        Producto
+                    </button>
+                </div>
+
+            </section>
+        </div>
+
+        <!-- ===== MODAL: CAMBIAR MESA ===== -->
+        <div id="modal-cambiar-mesa" class="modal-overlay" style="display:none;">
+            <div class="modal-box">
+                <h3 class="modal-title">Cambiar de Mesa</h3>
+                <p class="modal-desc">Selecciona la nueva mesa. Solo se muestran las mesas libres.</p>
+                <div class="modal-mesas-grid" id="modal-mesas-grid">
+                    <!-- Generado por JS -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn modal-btn--cancel" id="modal-cancelar">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MODAL: COMENTARIOS DE COCINA ===== -->
+        <div id="modal-notas" class="modal-overlay" style="display:none;">
+            <div class="modal-box modal-box--notas">
+                <div class="modal-header-notas">
+                    <h3 class="modal-title" id="modal-notas-titulo">Comentarios</h3>
+                    <p class="modal-desc" id="modal-notas-plato-desc">Añade los ingredientes que no quieren o indicaciones especiales:</p>
+                </div>
+
+                <!-- Comentarios rápidos táctiles -->
+                <div class="modal-notas-seccion">
+                    <span class="modal-notas-subtitulo">Comentarios rápidos frecuentes:</span>
+                    <div class="notas-chips-grid">
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin cebolla')">Sin cebolla</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin picante')">Sin picante</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Muy picante')">Muy picante</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Poco picante')">Poco picante</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin gluten')">Sin gluten</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin sal')">Sin sal</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Salsa aparte')">Salsa aparte</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin huevo')">Sin huevo</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin gambas')">Sin gambas</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin cilantro')">Sin cilantro</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Sin frutos secos')">Sin frutos secos</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Bien hecho')">Bien hecho</button>
+                        <button type="button" class="chip-btn" onclick="agregarNotaModal('Para llevar')">Para llevar</button>
+                    </div>
+                </div>
+
+                <!-- Campo para escribir cualquier comentario personalizado -->
+                <div class="modal-notas-seccion">
+                    <span class="modal-notas-subtitulo">Escribir comentario personalizado:</span>
+                    <div class="modal-notas-input-group">
+                        <input type="text" id="input-nueva-nota" class="modal-notas-input"
+                               placeholder="Ej: sin verduras, extra crujiente..." maxlength="80" />
+                        <button type="button" class="modal-btn-add-nota" id="btn-agregar-nota-input">+ Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Lista de comentarios asignados a este plato -->
+                <div class="modal-notas-seccion">
+                    <span class="modal-notas-subtitulo">Comentarios añadidos a este plato:</span>
+                    <div id="modal-notas-lista" class="modal-notas-tags-lista">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn modal-btn--cancel" id="modal-notas-cerrar">Cancelar</button>
+                    <button type="button" class="modal-btn modal-btn--confirm" id="modal-notas-guardar">Guardar Comentarios</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MODAL: OPCIONES MENÚ DEL DÍA ===== -->
+        <div id="modal-menu-dia" class="modal-overlay" style="display:none;">
+            <div class="modal-box modal-box--menu-dia">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modal-menu-dia-titulo">Seleccionar opciones del Menú</h3>
+                    <button type="button" class="modal-cerrar-x" onclick="cerrarMenuDia()">✕</button>
+                </div>
+
+                <!-- PRIMERO -->
+                <div class="menu-dia-seccion">
+                    <div class="menu-dia-seccion-titulo">🥗 PRIMERO <span class="menu-dia-obligatorio">*</span></div>
+                    <div class="menu-dia-opciones" id="menu-dia-primeros"></div>
+                </div>
+
+                <!-- SEGUNDO -->
+                <div class="menu-dia-seccion">
+                    <div class="menu-dia-seccion-titulo">🍚 SEGUNDO <span class="menu-dia-obligatorio">*</span></div>
+                    <div class="menu-dia-opciones" id="menu-dia-segundos"></div>
+                </div>
+
+                <!-- TERCERO -->
+                <div class="menu-dia-seccion">
+                    <div class="menu-dia-seccion-titulo">🍗 TERCERO <span class="menu-dia-obligatorio">*</span></div>
+                    <div class="menu-dia-opciones" id="menu-dia-terceros"></div>
+                </div>
+
+                <!-- POSTRE -->
+                <div class="menu-dia-seccion">
+                    <div class="menu-dia-seccion-titulo">🍮 POSTRE</div>
+                    <div class="menu-dia-opciones" id="menu-dia-postres"></div>
+                </div>
+
+                <!-- BEBIDA -->
+                <div class="menu-dia-seccion">
+                    <div class="menu-dia-seccion-titulo">🥤 BEBIDA</div>
+                    <div class="menu-dia-opciones" id="menu-dia-bebidas"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn modal-btn--cancel" onclick="cerrarMenuDia()">Cancelar</button>
+                    <button type="button" class="modal-btn modal-btn--confirm" onclick="confirmarMenuDia()">Añadir a la comanda ✓</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SCRIPT INTERACTIVO ===== -->
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+
+            let comandaId = /*[[${comanda != null ? comanda.id : 0}]]*/ 0;
+            const comandaMesa = /*[[${comanda != null ? comanda.mesa : 'Mesa'}]]*/ 'Mesa';
+            const tipoServicio = /*[[${tipoServicio != null ? tipoServicio : 'SALA'}]]*/ 'SALA';
+
+            /* Inicializamos las líneas con los datos existentes de la base de datos */
+            let lineas = [
+                /*[# th:if="${comanda != null && comanda.lineas != null}"]*/
+                /*[# th:each="l : ${comanda.lineas}"]*/
+                {
+                    id: /*[[${l.id}]]*/ 0,
+                    productoId: /*[[${l.producto != null ? l.producto.id : 0}]]*/ 0,
+                    nombre: /*[[${l.producto != null ? l.producto.nombre : ''}]]*/ '',
+                    precio: /*[[${l.precioUnitario}]]*/ 0,
+                    cantidad: /*[[${l.cantidad}]]*/ 1,
+                    subtotal: /*[[${l.subtotal}]]*/ 0,
+                    notas: /*[[${l.notas != null ? l.notas : ''}]]*/ ''
+                },
+                /*[/]*/
+                /*[/]*/
+            ];
+
+            // Renderizado inicial
+            renderComanda();
+
+            async function addProduct(btn) {
+                const prodId = btn.dataset.id;
+                btn.style.pointerEvents = 'none';
+
+                try {
+                    const url = '/api/pos/' + comandaId + '/lineas?productoId=' + prodId + '&cantidad=1'
+                        + '&mesa=' + encodeURIComponent(comandaMesa)
+                        + '&tipoServicio=' + encodeURIComponent(tipoServicio);
+                    const res = await fetch(url, { method: 'POST' });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.id && data.id !== comandaId) {
+                            comandaId = data.id;
+                        }
+                        actualizarEstadoDesdeServidor(data);
+                    } else {
+                        console.warn('Error al añadir producto en servidor, resincronizando comanda...');
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error('Error de red al añadir producto:', err);
+                } finally {
+                    btn.style.pointerEvents = 'auto';
+                }
+            }
+
+            async function cambiarCantidad(lineaId, nuevaCantidad) {
+                if (!comandaId) return;
+
+                try {
+                    if (nuevaCantidad <= 0) {
+                        const res = await fetch('/api/pos/' + comandaId + '/lineas/' + lineaId, {
+                            method: 'DELETE'
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            actualizarEstadoDesdeServidor(data);
+                        }
+                    } else {
+                        const res = await fetch('/api/pos/' + comandaId + '/lineas/' + lineaId + '?cantidad=' + nuevaCantidad, {
+                            method: 'PUT'
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            actualizarEstadoDesdeServidor(data);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error al actualizar línea:', err);
+                }
+            }
+
+            function actualizarEstadoDesdeServidor(comandaData) {
+                if (comandaData && comandaData.lineas) {
+                    lineas = comandaData.lineas.map(l => ({
+                        id: l.id,
+                        productoId: l.producto ? l.producto.id : 0,
+                        nombre: l.producto ? l.producto.nombre : '',
+                        precio: l.precioUnitario,
+                        cantidad: l.cantidad,
+                        subtotal: (typeof l.subtotal === 'number') ? l.subtotal : (l.precioUnitario * l.cantidad),
+                        notas: l.notas || ''
+                    }));
+                } else {
+                    lineas = [];
+                }
+                renderComanda();
+            }
+
+            function renderComanda() {
+                const ul = document.getElementById('comanda-items');
+                const emptyMsg = document.getElementById('comanda-vacia-msg');
+                ul.innerHTML = '';
+
+                let total = 0;
+                let totalItems = 0;
+
+                if (!lineas || lineas.length === 0) {
+                    emptyMsg.style.display = 'block';
+                } else {
+                    emptyMsg.style.display = 'none';
+
+                    lineas.forEach(l => {
+                        const sub = (typeof l.subtotal === 'number') ? l.subtotal : (l.precio * l.cantidad);
+                        total += sub;
+                        totalItems += l.cantidad;
+
+                        const notasArr = l.notas ? l.notas.split(',').map(s => s.trim()).filter(Boolean) : [];
+                        let tagsHtml = '';
+                        notasArr.forEach((nota) => {
+                            tagsHtml += `<span class="comanda-nota-tag">${escapeHtml(nota)}</span>`;
+                        });
+
+                        const li = document.createElement('li');
+                        li.className = 'comanda-line';
+
+                        li.innerHTML = `
+                            <!-- 1ª Sección: Unidades con controles táctiles integrados -->
+                            <div class="comanda-line__sec-unidades">
+                                <button type="button" class="comanda-btn-touch comanda-btn-touch--minus" title="Quitar 1 unidad" onclick="cambiarCantidad(${l.id}, ${l.cantidad - 1})">-</button>
+                                <span class="comanda-line__qty-num">${l.cantidad}</span>
+                                <button type="button" class="comanda-btn-touch comanda-btn-touch--plus" title="Añadir 1 unidad" onclick="cambiarCantidad(${l.id}, ${l.cantidad + 1})">+</button>
+                            </div>
+
+                            <!-- 2ª Sección: Nombre del plato y comentarios para cocineros -->
+                            <div class="comanda-line__sec-nombre">
+                                <span class="comanda-line__nombre-texto">${escapeHtml(l.nombre)}</span>
+                                <div class="comanda-line__notas-container">
+                                    ${tagsHtml}
+                                    <button type="button" class="comanda-btn-nota" title="Gestionar comentarios" onclick="abrirModalNotas(${l.id}, '${escapeHtml(l.nombre)}')">
+                                        + Comentarios
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 3ª Sección: Precio y botón eliminar -->
+                            <div class="comanda-line__sec-precio">
+                                <span class="comanda-line__precio-texto">${sub.toFixed(2)} €</span>
+                                <button type="button" class="comanda-btn-touch comanda-btn-touch--del" title="Eliminar plato" onclick="cambiarCantidad(${l.id}, 0)">×</button>
+                            </div>
+                        `;
+                        ul.appendChild(li);
+                    });
+                }
+
+                document.getElementById('comanda-total-value').textContent = total.toFixed(2) + ' €';
+                const articulosSpan = document.getElementById('resumen-articulos');
+                if (articulosSpan) {
+                    articulosSpan.textContent = totalItems + (totalItems === 1 ? ' artículo' : ' artículos');
+                }
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            document.getElementById('btn-cobrar').addEventListener('click', async function () {
+                if (!lineas || lineas.length === 0) {
+                    alert('La comanda está vacía. Añade productos antes de cobrar.');
+                    return;
+                }
+
+                const totalStr = document.getElementById('comanda-total-value').textContent;
+                const confirmar = confirm(`¿Deseas cobrar la comanda de ${comandaMesa} por importe de ${totalStr}?`);
+                if (!confirmar) return;
+
+                try {
+                    const res = await fetch('/api/pos/' + comandaId + '/cobrar', {
+                        method: 'POST'
+                    });
+
+                    if (res.ok) {
+                        alert(`¡Comanda de ${comandaMesa} cobrada con éxito!`);
+                        const returnUrl = /*[[${tipoServicio == 'RECOGIDA' ? '/recogida' : (tipoServicio == 'DOMICILIO' ? '/domicilio' : '/sala')}]]*/ '/sala';
+                        window.location.href = returnUrl;
+                    } else {
+                        const err = await res.text();
+                        alert('Error al cobrar la comanda: ' + err);
+                    }
+                } catch (err) {
+                    console.error('Error al cobrar:', err);
+                    alert('Error de conexión al cobrar la comanda.');
+                }
+            });
+
+            // ── Pasar a Recogida ──
+            const btnMoverRecogida = document.getElementById('btn-mover-recogida');
+            if (btnMoverRecogida) {
+                btnMoverRecogida.addEventListener('click', async function () {
+                    const confirmar = confirm(`¿Pasar el pedido de ${comandaMesa} a Recogida?\nSe asignará automáticamente el primer número de recogida libre.`);
+                    if (!confirmar) return;
+
+                    btnMoverRecogida.disabled = true;
+                    try {
+                        const res = await fetch('/api/pos/' + comandaId + '/mover-recogida', { method: 'POST' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            alert(`Pedido movido a ${data.mesa} correctamente.`);
+                            window.location.href = '/comanda?mesa=' + encodeURIComponent(data.mesa) + '&tipo=RECOGIDA';
+                        } else {
+                            const err = await res.text();
+                            alert('No se pudo mover a recogida: ' + err);
+                            btnMoverRecogida.disabled = false;
+                        }
+                    } catch (err) {
+                        alert('Error de conexión.');
+                        btnMoverRecogida.disabled = false;
+                    }
+                });
+            }
+
+            // ── Cambiar Mesa ──
+            const btnCambiarMesa = document.getElementById('btn-cambiar-mesa');
+            const modalOverlay   = document.getElementById('modal-cambiar-mesa');
+            const modalGrid      = document.getElementById('modal-mesas-grid');
+            const btnModalCancel = document.getElementById('modal-cancelar');
+
+            // Mesas de sala: 2-23 y 24, 26, 28
+            const todasMesas = [...Array.from({length: 22}, (_, i) => i + 2), 24, 26, 28];
+
+            if (btnCambiarMesa && modalOverlay) {
+                btnCambiarMesa.addEventListener('click', async function () {
+                    // Obtener mesas ocupadas
+                    let mesasOcupadas = new Set();
+                    try {
+                        const res = await fetch('/api/pos/data');
+                        if (res.ok) {
+                            const data = await res.json();
+                            (data.comandasAbiertas || []).forEach(c => {
+                                if (c.mesa) mesasOcupadas.add(c.mesa);
+                            });
+                        }
+                    } catch (e) { /* continuar igual */ }
+
+                    // Construir grid de mesas libres
+                    modalGrid.innerHTML = '';
+                    const mesaActualNorm = comandaMesa;
+                    const mesasLibres = todasMesas.filter(n => {
+                        const nombre = 'Mesa ' + n;
+                        return nombre !== mesaActualNorm && !mesasOcupadas.has(nombre);
+                    });
+
+                    if (mesasLibres.length === 0) {
+                        modalGrid.innerHTML = '<p style="color:#444;padding:20px;text-align:center;font-weight:600;">No hay mesas libres disponibles.</p>';
+                    } else {
+                        mesasLibres.forEach(n => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'modal-mesa-btn';
+                            btn.textContent = n;
+                            btn.title = 'Mover pedido a Mesa ' + n;
+                            btn.addEventListener('click', async function () {
+                                const nueva = 'Mesa ' + n;
+                                const confirmar = confirm(`¿Mover el pedido de ${mesaActualNorm} a ${nueva}?`);
+                                if (!confirmar) return;
+
+                                btn.disabled = true;
+                                try {
+                                    const res = await fetch('/api/pos/' + comandaId + '/mover-mesa?nuevaMesa=' + encodeURIComponent(nueva), { method: 'POST' });
+                                    if (res.ok) {
+                                        alert(`Pedido movido a ${nueva} correctamente.`);
+                                        window.location.href = '/comanda?mesa=' + encodeURIComponent(nueva) + '&tipo=SALA';
+                                    } else {
+                                        const err = await res.text();
+                                        alert('No se pudo cambiar de mesa: ' + err);
+                                        btn.disabled = false;
+                                    }
+                                } catch (e) {
+                                    alert('Error de conexión.');
+                                    btn.disabled = false;
+                                }
+                            });
+                            modalGrid.appendChild(btn);
+                        });
+                    }
+
+                    modalOverlay.style.display = 'flex';
+                });
+
+                if (btnModalCancel) {
+                    btnModalCancel.addEventListener('click', function () {
+                        modalOverlay.style.display = 'none';
+                    });
+                }
+
+                modalOverlay.addEventListener('click', function (e) {
+                    if (e.target === modalOverlay) modalOverlay.style.display = 'none';
+                });
+            }
+
+            // ── GESTIÓN DE NOTAS Y COMENTARIOS PARA COCINA ──
+            let currentLineaIdParaNotas = null;
+            let currentNotasModal = [];
+
+            const modalNotasOverlay = document.getElementById('modal-notas');
+            const btnCerrarModalNotas = document.getElementById('modal-notas-cerrar');
+            const btnGuardarModalNotas = document.getElementById('modal-notas-guardar');
+            const btnAgregarNotaInput = document.getElementById('btn-agregar-nota-input');
+            const inputNuevaNota = document.getElementById('input-nueva-nota');
+
+            function abrirModalNotas(lineaId, platoNombre) {
+                currentLineaIdParaNotas = lineaId;
+                const l = lineas.find(x => x.id === lineaId);
+                if (!l) return;
+
+                currentNotasModal = l.notas ? l.notas.split(',').map(s => s.trim()).filter(Boolean) : [];
+                document.getElementById('modal-notas-titulo').textContent = 'Comentarios: ' + platoNombre;
+                if (inputNuevaNota) inputNuevaNota.value = '';
+                renderModalNotasLista();
+                if (modalNotasOverlay) {
+                    modalNotasOverlay.style.display = 'flex';
+                }
+                if (inputNuevaNota) {
+                    setTimeout(() => inputNuevaNota.focus(), 50);
+                }
+            }
+
+            function agregarNotaModal(texto) {
+                const t = (texto || '').trim();
+                if (!t) return;
+                if (!currentNotasModal.includes(t)) {
+                    currentNotasModal.push(t);
+                    renderModalNotasLista();
+                }
+                if (inputNuevaNota) {
+                    inputNuevaNota.value = '';
+                    inputNuevaNota.focus();
+                }
+            }
+
+            function quitarNotaModal(index) {
+                currentNotasModal.splice(index, 1);
+                renderModalNotasLista();
+            }
+
+            function renderModalNotasLista() {
+                const container = document.getElementById('modal-notas-lista');
+                if (!container) return;
+                container.innerHTML = '';
+                if (currentNotasModal.length === 0) {
+                    container.innerHTML = '<span class="modal-notas-vacio">Sin comentarios todavía. Pulsa un comentario rápido o escribe uno abajo.</span>';
+                    return;
+                }
+                currentNotasModal.forEach((n, idx) => {
+                    const tag = document.createElement('span');
+                    tag.className = 'modal-nota-pill';
+                    tag.innerHTML = `${escapeHtml(n)} <button type="button" class="modal-nota-pill__del" onclick="quitarNotaModal(${idx})">×</button>`;
+                    container.appendChild(tag);
+                });
+            }
+
+            async function guardarNotasModal() {
+                if (!currentLineaIdParaNotas) return;
+                const notaString = currentNotasModal.join(', ');
+                await enviarNotaServidor(currentLineaIdParaNotas, notaString);
+                if (modalNotasOverlay) modalNotasOverlay.style.display = 'none';
+            }
+
+            async function eliminarNotaRapida(lineaId, index) {
+                const l = lineas.find(x => x.id === lineaId);
+                if (!l) return;
+                let arr = l.notas ? l.notas.split(',').map(s => s.trim()).filter(Boolean) : [];
+                arr.splice(index, 1);
+                await enviarNotaServidor(lineaId, arr.join(', '));
+            }
+
+            async function enviarNotaServidor(lineaId, notaString) {
+                try {
+                    const url = '/api/pos/' + comandaId + '/lineas/' + lineaId + '/nota?nota=' + encodeURIComponent(notaString);
+                    const res = await fetch(url, { method: 'POST' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        actualizarEstadoDesdeServidor(data);
+                    } else {
+                        console.error('Error al guardar comentario en servidor');
+                    }
+                } catch (e) {
+                    console.error('Error de red al guardar nota:', e);
+                }
+            }
+
+            if (btnAgregarNotaInput && inputNuevaNota) {
+                btnAgregarNotaInput.addEventListener('click', function () {
+                    agregarNotaModal(inputNuevaNota.value);
+                });
+                inputNuevaNota.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        agregarNotaModal(inputNuevaNota.value);
+                    }
+                });
+            }
+
+            if (btnGuardarModalNotas) {
+                btnGuardarModalNotas.addEventListener('click', guardarNotasModal);
+            }
+
+            if (btnCerrarModalNotas && modalNotasOverlay) {
+                btnCerrarModalNotas.addEventListener('click', function () {
+                    modalNotasOverlay.style.display = 'none';
+                });
+                modalNotasOverlay.addEventListener('click', function (e) {
+                    if (e.target === modalNotasOverlay) modalNotasOverlay.style.display = 'none';
+                });
+            }
+
+            // ── LÓGICA MENÚ DEL DÍA ──
+            const MENUS_DIA = {
+                'Menú del Día Estándar': {
+                    primeros: ['Ensalada de repollo','Ensalada china','Rollo de primavera','Wan-tun frito',
+                               'Sopa de aletas de tiburón','Sopa de pollo con champiñones','Sopa agria y picante',
+                               'Sopa de maíz con carne de cangrejo','Sopa de verduras','Sopa de nido de golondrinas'],
+                    segundos: ['Tallarines tres delicias','Arroz frito con gambas','Arroz frito tres delicias',
+                               'Arroz frito al estilo "yangchong"','Arroz blanco','Pan chino'],
+                    terceros: ['Verduras con gambas','Gambas agridulces','Langostinos rebozado','Pollo con limón',
+                               'Pechuga de pollo frito estilo chino','Filete de pollo a la plancha',
+                               'Bistec con patatas frita','Pescado con salsa de soja y jengibre',
+                               'Ternera con salsa picante','Ternera con pimiento verde',
+                               'Ternera o pollo con bambú y setas','Cerdo agridulce','Pollo al curry',
+                               'Pollo con almendras','Bolitas de pollo con patata frita',
+                               'Ternera con salsa de ostras','Ternera con patatas fritas',
+                               'Ternera con curry','Ternera con cebolla','Ternera con verduras',
+                               'Verduras variadas salteadas','Pescado con patatas fritas','Tortilla con jamón'],
+                    postres:  ['Helado','Flan','Macedonia','Plátano frito','Manzana frita','Té chino','Café'],
+                    bebidas:  ['Refrescos','Agua mineral','Cerveza','Copa de vino']
+                },
+                'Menú del Día Premium': {
+                    primeros: ['Ensalada con rollo de primavera','Rollito vietnamita',
+                               'Sopa de aleta de tiburón','Sopa agria y picante'],
+                    segundos: ['Arroz frito al estilo "yangchong"','Arroz frito con salsa tailandesa',
+                               'Arroz frito con miso','Fideos de arroz chino','Pan chino'],
+                    terceros: ['Pato asado a la pekinesa con crepes','Pato con piña',
+                               'Pato con bambú y setas chinas','Gambas con salsa picante',
+                               'Gambas con bambú y setas','Ternera con salsa "miso"',
+                               'Ternera con salsa picante','Ternera con pimientos',
+                               'Ternera con salsa tailandesa','Ternera con bambú y setas',
+                               'Pollo con salsa tailandesa','Pollo con salsa "miso"',
+                               'Pollo con salsa picante','Pollo agridulce','Costillas agridulces',
+                               'Sepia con salsa picante','Costillas asadas con patatas'],
+                    postres:  ['Helado','Flan o flan con nata','Macedonia','Plátano frito','Manzana frita','Té chino','Café'],
+                    bebidas:  ['Refrescos','Agua mineral','Cerveza','Copa de vino']
+                }
+            };
+
+            let menuDiaBtnActual = null;
+            let menuDiaSelecciones = { primero: null, segundo: null, tercero: null, postre: null, bebida: null };
+
+            function onProductClick(btn) {
+                const nombre = btn.dataset.nombre || '';
+                if (nombre === 'Menú del Día Estándar' || nombre === 'Menú del Día Premium') {
+                    abrirMenuDia(btn);
+                } else {
+                    addProduct(btn);
+                }
+            }
+
+            function abrirMenuDia(btn) {
+                menuDiaBtnActual = btn;
+                menuDiaSelecciones = { primero: null, segundo: null, tercero: null, postre: null, bebida: null };
+                const nombre = btn.dataset.nombre;
+                const datos = MENUS_DIA[nombre];
+                document.getElementById('modal-menu-dia-titulo').textContent = nombre;
+                rellenarOpcionesMenuDia('menu-dia-primeros',  datos.primeros,  'primero');
+                rellenarOpcionesMenuDia('menu-dia-segundos',  datos.segundos,  'segundo');
+                rellenarOpcionesMenuDia('menu-dia-terceros',  datos.terceros,  'tercero');
+                rellenarOpcionesMenuDia('menu-dia-postres',   datos.postres,   'postre');
+                rellenarOpcionesMenuDia('menu-dia-bebidas',   datos.bebidas,   'bebida');
+                document.getElementById('modal-menu-dia').style.display = 'flex';
+            }
+
+            function rellenarOpcionesMenuDia(contenedorId, opciones, clave) {
+                const contenedor = document.getElementById(contenedorId);
+                contenedor.innerHTML = '';
+                opciones.forEach(opcion => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'menu-dia-opcion-btn';
+                    btn.textContent = opcion;
+                    btn.addEventListener('click', function() {
+                        contenedor.querySelectorAll('.menu-dia-opcion-btn').forEach(b => b.classList.remove('menu-dia-opcion-btn--activo'));
+                        btn.classList.add('menu-dia-opcion-btn--activo');
+                        menuDiaSelecciones[clave] = opcion;
+                    });
+                    contenedor.appendChild(btn);
+                });
+            }
+
+            function cerrarMenuDia() {
+                document.getElementById('modal-menu-dia').style.display = 'none';
+                menuDiaBtnActual = null;
+            }
+
+            async function confirmarMenuDia() {
+                const { primero, segundo, tercero } = menuDiaSelecciones;
+                if (!primero || !segundo || !tercero) {
+                    alert('⚠️ Debes elegir al menos un Primero, un Segundo y un Tercero.');
+                    return;
+                }
+                // Construir nota con las elecciones
+                let partes = [];
+                if (menuDiaSelecciones.primero)  partes.push('1º: ' + menuDiaSelecciones.primero);
+                if (menuDiaSelecciones.segundo)  partes.push('2º: ' + menuDiaSelecciones.segundo);
+                if (menuDiaSelecciones.tercero)  partes.push('3º: ' + menuDiaSelecciones.tercero);
+                if (menuDiaSelecciones.postre)   partes.push('Postre: ' + menuDiaSelecciones.postre);
+                if (menuDiaSelecciones.bebida)   partes.push('Bebida: ' + menuDiaSelecciones.bebida);
+                const nota = partes.join(' | ');
+
+                cerrarMenuDia();
+
+                // Añadir el producto base y luego ponerle la nota
+                const btn = menuDiaBtnActual;
+                const prodId = btn.dataset.id;
+                btn.style.pointerEvents = 'none';
+                try {
+                    const url = '/api/pos/' + comandaId + '/lineas?productoId=' + prodId + '&cantidad=1'
+                        + '&mesa=' + encodeURIComponent(comandaMesa)
+                        + '&tipoServicio=' + encodeURIComponent(tipoServicio);
+                    const res = await fetch(url, { method: 'POST' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.id && data.id !== comandaId) comandaId = data.id;
+                        actualizarEstadoDesdeServidor(data);
+                        // Buscar la línea recién añadida (última con ese productoId)
+                        const linea = data.lineas ? [...data.lineas].reverse().find(l => l.producto && l.producto.id == prodId) : null;
+                        if (linea && nota) {
+                            await enviarNotaServidor(linea.id, nota);
+                        }
+                    } else {
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error('Error al añadir menú del día:', err);
+                } finally {
+                    btn.style.pointerEvents = 'auto';
+                }
+            }
+
+            // ── NAVEGACIÓN POR CATEGORÍAS ──
+            (function() {
+                // Recoger todos los productos del DOM fuente
+                var allBtns = Array.from(document.querySelectorAll('#all-products-source .product-btn--source'));
+
+                // Agrupar por categoría manteniendo el orden
+                var categorias = [];
+                var porCategoria = {};
+                allBtns.forEach(function(btn) {
+                    var cat = btn.dataset.categoria || 'Sin categoría';
+                    if (!porCategoria[cat]) {
+                        porCategoria[cat] = [];
+                        categorias.push(cat);
+                    }
+                    porCategoria[cat].push(btn);
+                });
+
+                // Iconos por categoría
+                var iconos = {
+                    'Entrada':             '🥗',
+                    'Sopa':                '🍜',
+                    'Arroz & Tallarines':  '🍚',
+                    'Tortilla & Verduras': '🥚',
+                    'Pescado & Gambas':    '🦐',
+                    'Ternera & Cerdo':     '🥩',
+                    'Pollo':               '🍗',
+                    'Mariscos & Patos':    '🦆',
+                    'Platos Especiales':   '⭐',
+                    'Menús Especiales':    '🍱',
+                    'Menú del Día':        '📋'
+                };
+
+                // Renderizar grid de categorías
+                var catGrid = document.getElementById('categorias-grid');
+                categorias.forEach(function(cat) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'categoria-btn';
+                    var icono = iconos[cat] || '🍽️';
+                    btn.innerHTML = '<span class="cat-btn-icono">' + icono + '</span>'
+                                  + '<span class="cat-btn-nombre">' + escapeHtml(cat) + '</span>'
+                                  + '<span class="cat-btn-count">' + porCategoria[cat].length + '</span>';
+                    btn.addEventListener('click', function() {
+                        mostrarPlatos(cat, porCategoria[cat]);
+                    });
+                    catGrid.appendChild(btn);
+                });
+
+                // Mostrar platos de una categoría
+                window.mostrarPlatos = function(cat, btns) {
+                    document.getElementById('categorias-grid').style.display = 'none';
+                    document.getElementById('platos-categoria-view').style.display = '';
+                    document.getElementById('platos-cat-titulo').textContent = (iconos[cat] || '🍽️') + ' ' + cat;
+
+                    var grid = document.getElementById('products-grid');
+                    grid.innerHTML = '';
+                    btns.forEach(function(srcBtn) {
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'product-btn';
+                        btn.textContent = srcBtn.textContent.trim();
+                        btn.dataset.id       = srcBtn.dataset.id;
+                        btn.dataset.nombre   = srcBtn.dataset.nombre;
+                        btn.dataset.precio   = srcBtn.dataset.precio;
+                        btn.dataset.categoria = srcBtn.dataset.categoria;
+                        btn.addEventListener('click', function() { onProductClick(btn); });
+                        grid.appendChild(btn);
+                    });
+                };
+
+                // Volver al grid de categorías
+                window.volverACategorias = function() {
+                    document.getElementById('platos-categoria-view').style.display = 'none';
+                    document.getElementById('categorias-grid').style.display = '';
+                };
+            })();
+
+            /*]]>*/
+        </script>
+
+    </main>
+</body>
+
+</html>

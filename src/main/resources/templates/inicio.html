@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+        <nav>
+            <ul>
+                <li><a th:href="@{/sala}">Sala</a></li>
+                <li><a th:href="@{/recogida}">Recogida</a></li>
+                <li><a th:href="@{/domicilio}">Domicilio</a></li>
+            </ul>
+        </nav>
+        <h2>DISEÑO</h2>
+    </main>
+</body>
+
+</html>

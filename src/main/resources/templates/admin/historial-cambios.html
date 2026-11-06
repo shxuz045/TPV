@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+        <div class="admin-page">
+            <div class="admin-header-flex">
+                <h1 class="admin-titulo">📝 Historial de Cambios</h1>
+                <div class="admin-subnav">
+                    <a th:href="@{/admin/productos}" class="admin-btn admin-btn--subnav">🍽️ Gestión de Productos</a>
+                    <a th:href="@{/admin/historial/eliminaciones}" class="admin-btn admin-btn--subnav">🗑️ Ver Historial de Eliminaciones</a>
+                </div>
+            </div>
+
+            <!-- Mensajes flash -->
+            <div class="admin-alert admin-alert--ok" th:if="${ok}" th:text="${ok}"></div>
+            <div class="admin-alert admin-alert--error" th:if="${error}" th:text="${error}"></div>
+
+            <p class="admin-subtexto">Registro de creaciones y modificaciones de platos con opción de revertir.</p>
+
+            <div th:if="${#lists.isEmpty(historialCambios)}" class="historial-vacio-box">
+                <p>No hay cambios registrados en el historial.</p>
+                <a th:href="@{/admin/productos}" class="admin-btn admin-btn--crear" style="display:inline-block; margin-top: 10px; text-decoration: none;">Ir a Gestión de Productos</a>
+            </div>
+
+            <table class="admin-tabla" th:if="${!#lists.isEmpty(historialCambios)}">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Plato</th>
+                        <th>Precio</th>
+                        <th>Categoría</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="h : ${historialCambios}">
+                        <td th:text="${#temporals.format(h.fecha, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td>
+                            <span class="historial-badge"
+                                th:classappend="${h.accion.name() == 'CREAR' ? 'historial-badge--crear' : 'historial-badge--modificar'}"
+                                th:text="${h.accion.name() == 'CREAR' ? 'Creado' : 'Modificado'}"></span>
+                        </td>
+                        <td th:text="${h.nombre}" style="font-weight: 700;"></td>
+                        <td th:text="${#numbers.formatDecimal(h.precio, 1, 2)} + ' €'"></td>
+                        <td th:text="${h.categoria}"></td>
+                        <td>
+                            <form th:action="@{/admin/historial/{id}/revertir(id=${h.id})}" method="post"
+                                style="display:inline"
+                                onsubmit="return confirm('¿Revertir este cambio?')">
+                                <input type="hidden" name="origen" value="cambios" />
+                                <button type="submit" class="admin-btn admin-btn--revertir">↩️ Revertir cambio</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+
+</html>
+

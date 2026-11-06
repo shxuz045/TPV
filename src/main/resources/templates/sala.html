@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+        <nav class="service-nav">
+            <span class="service-nav__btn service-nav__btn--active">SALA</span>
+            <a th:href="@{/recogida}" class="service-nav__btn">RECOGIDA</a>
+            <a th:href="@{/domicilio}" class="service-nav__btn">DOMICILIO</a>
+        </nav>
+
+        <div class="sala-distribucion">
+            <!-- ===== SECCIÓN IZQUIERDA DE LA SALA ===== -->
+            <section class="sala-seccion sala-seccion--izq">
+                <!-- Columna Izquierda: 4, 6, 8 | espacio | 10, 12 -->
+                <div class="sala-columna">
+                    <a th:each="num : ${ {4, 6, 8} }"
+                       th:href="@{/comanda(mesa='Mesa ' + ${num}, tipo='SALA')}"
+                       th:text="${num}"
+                       th:classappend="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'ocupada' : ''"
+                       class="mesa-btn mesa-cuadrada"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'Mesa ' + num + ' (Comanda abierta)' : 'Mesa ' + num + ' (Libre)'">
+                    </a>
+                    <div class="sala-espacio"></div>
+                    <a th:each="num : ${ {10, 12} }"
+                       th:href="@{/comanda(mesa='Mesa ' + ${num}, tipo='SALA')}"
+                       th:text="${num}"
+                       th:classappend="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'ocupada' : ''"
+                       class="mesa-btn mesa-cuadrada"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'Mesa ' + num + ' (Comanda abierta)' : 'Mesa ' + num + ' (Libre)'">
+                    </a>
+                </div>
+
+                <!-- Columna Derecha: 3, 5, 7, 9, 11 -->
+                <div class="sala-columna">
+                    <a th:each="num : ${ {3, 5, 7, 9, 11} }"
+                       th:href="@{/comanda(mesa='Mesa ' + ${num}, tipo='SALA')}"
+                       th:text="${num}"
+                       th:classappend="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'ocupada' : ''"
+                       class="mesa-btn mesa-cuadrada"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'Mesa ' + num + ' (Comanda abierta)' : 'Mesa ' + num + ' (Libre)'">
+                    </a>
+                </div>
+            </section>
+
+            <!-- ===== LÍNEA SEPARADORA CENTRAL (con hueco) ===== -->
+            <div class="sala-separador-grupo">
+                <div class="sala-separador sala-separador--sup"></div>
+                <div class="sala-espacio"></div>
+                <div class="sala-separador sala-separador--inf"></div>
+            </div>
+
+            <!-- ===== SECCIÓN DERECHA DE LA SALA ===== -->
+            <section class="sala-seccion sala-seccion--der">
+                <!-- Columna Izquierda: 22, 24, 26 | mini-separador | 27 -->
+                <div class="sala-columna">
+                    <!-- Mesas 22, 24, 26 -->
+                    <a th:each="num : ${ {22, 24, 26} }"
+                       th:href="@{/comanda(mesa='Mesa ' + ${num}, tipo='SALA')}"
+                       th:text="${num}"
+                       th:classappend="${(mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))) ? 'ocupada ' : ''} + ${(num == 24 || num == 26) ? 'mesa-redonda' : 'mesa-cuadrada'}"
+                       class="mesa-btn"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'Mesa ' + num + ' (Comanda abierta)' : 'Mesa ' + num + ' (Libre)'">
+                    </a>
+                    <div class="sala-mini-separador"></div>
+                    <!-- Mesa 27 (redonda, separada) -->
+                    <a th:href="@{/comanda(mesa='Mesa 27', tipo='SALA')}"
+                       th:classappend="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa 27') || mesasOcupadas.contains('27'))} ? 'ocupada' : ''"
+                       class="mesa-btn mesa-redonda"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa 27') || mesasOcupadas.contains('27'))} ? 'Mesa 27 (Comanda abierta)' : 'Mesa 27 (Libre)'">27</a>
+                </div>
+
+                <!-- Columna Derecha: 18, 17, 16 | espacio | 15, 14 -->
+                <div class="sala-columna">
+                    <a th:each="num : ${ {18, 17, 16} }"
+                       th:href="@{/comanda(mesa='Mesa ' + ${num}, tipo='SALA')}"
+                       th:text="${num}"
+                       th:classappend="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'ocupada' : ''"
+                       class="mesa-btn mesa-cuadrada"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'Mesa ' + num + ' (Comanda abierta)' : 'Mesa ' + num + ' (Libre)'">
+                    </a>
+                    <div class="sala-espacio"></div>
+                    <a th:each="num : ${ {15, 14} }"
+                       th:href="@{/comanda(mesa='Mesa ' + ${num}, tipo='SALA')}"
+                       th:text="${num}"
+                       th:classappend="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'ocupada' : ''"
+                       class="mesa-btn mesa-cuadrada"
+                       th:title="${mesasOcupadas != null && (mesasOcupadas.contains('Mesa ' + num) || mesasOcupadas.contains('' + num))} ? 'Mesa ' + num + ' (Comanda abierta)' : 'Mesa ' + num + ' (Libre)'">
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>

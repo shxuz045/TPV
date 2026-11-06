@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+        <!-- Pestañas de Servicio -->
+        <nav class="service-nav">
+            <a th:href="@{/sala}" class="service-nav__btn">SALA</a>
+            <span class="service-nav__btn service-nav__btn--active">RECOGIDA</span>
+            <a th:href="@{/domicilio}" class="service-nav__btn">DOMICILIO</a>
+        </nav>
+
+        <!-- Rejilla de botones táctiles (40 al 89) -->
+        <div class="recogida-grid">
+            <a th:each="num : ${#numbers.sequence(40, 89)}"
+                th:href="@{/comanda(mesa='Recogida ' + ${num}, tipo='RECOGIDA')}" th:text="${num}"
+                class="mesa-btn mesa-cuadrada"
+                th:classappend="${recogidasOcupadas != null && (recogidasOcupadas.contains('Recogida ' + num) || recogidasOcupadas.contains('' + num))} ? 'ocupada' : ''"
+                th:title="${recogidasOcupadas != null && (recogidasOcupadas.contains('Recogida ' + num) || recogidasOcupadas.contains('' + num))} ? 'Recogida ' + num + ' (Comanda abierta)' : 'Recogida ' + num + ' (Libre)'">
+            </a>
+        </div>
+    </main>
+</body>
+
+</html>

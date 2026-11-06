@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es" th:replace="~{layout :: layout(~{::content})}">
+
+<body>
+    <main th:fragment="content">
+        <!-- Navegación de Servicio -->
+        <nav class="service-nav">
+            <a th:href="@{/sala}" class="service-nav__btn">SALA</a>
+            <a th:href="@{/recogida}" class="service-nav__btn">RECOGIDA</a>
+            <span class="service-nav__btn service-nav__btn--active">DOMICILIO</span>
+        </nav>
+
+        <div class="domicilio-panel-simple">
+            <!-- Barra superior centrada: Nuevo Pedido -->
+            <div class="domicilio-top-bar">
+                <button type="button" class="btn-nuevo-domicilio-grande" id="btn-abrir-modal-nuevo">
+                    + NUEVO PEDIDO A DOMICILIO
+                </button>
+            </div>
+
+            <!-- Avisos flash generales -->
+            <div th:if="${mensajeOk}" class="domicilio-alert domicilio-alert--ok" th:text="${mensajeOk}"></div>
+            <div th:if="${mensajeError}" class="domicilio-alert domicilio-alert--error" th:text="${mensajeError}"></div>
+
+            <!-- SI NO HAY PEDIDOS ACTIVOS: pantalla limpia -->
+            <div th:if="${#lists.isEmpty(pedidosActivos)}" class="domicilio-sin-pedidos">
+                <p class="sin-pedidos-texto">No hay pedidos a domicilio activos en este momento.</p>
+                <p class="sin-pedidos-sub">Pulsa en <strong>+ Nuevo Pedido a Domicilio</strong> para registrar una comanda (asigna números libres a partir del 90).</p>
+            </div>
+
+            <!-- SI HAY PEDIDOS: se ven los que hay ya -->
+            <div th:unless="${#lists.isEmpty(pedidosActivos)}" class="domicilio-pedidos-seccion">
+                <div class="domicilio-seccion-header">
+                    <h2 class="domicilio-seccion-titulo">
+                        Pedidos Activos
+                        <span class="badge-contador-pedidos" th:text="${#lists.size(pedidosActivos)}">1</span>
+                    </h2>
+                </div>
+
+                <div class="domicilio-grid-pedidos">
+                    <div th:each="p : ${pedidosActivos}" class="pedido-domicilio-card">
+                        <!-- Cabecera de la ficha: Número asignado (90, 91...) y hora -->
+                        <div class="pedido-head">
+                            <span class="pedido-numero-sobrante" th:text="${p.mesa}">Domicilio 90</span>
+                            <span class="pedido-hora-tag" th:classappend="${p.horaEntregaProgramada != 'Al momento'} ? 'hora-tag--programada' : 'hora-tag--momento'">
+                                <span th:text="${'⏰ ' + p.horaEntregaProgramada}">⏰ Al momento</span>
+                            </span>
+                        </div>
+
+                        <!-- Datos del cliente y dirección de entrega -->
+                        <div class="pedido-cuerpo">
+                            <div class="pedido-nombre" th:text="${p.nombreCliente}">Cliente</div>
+                            <div th:if="${p.telefonoCliente != null and !#strings.isEmpty(p.telefonoCliente)}" class="pedido-telefono">
+                                <a th:href="${'tel:' + p.telefonoCliente}" th:text="${'📞 ' + p.telefonoCliente}">📞 600000000</a>
+                            </div>
+                            <div class="pedido-direccion" th:text="${'📍 ' + p.direccionCliente}">📍 Calle Mayor 12</div>
+                            <div th:if="${p.notasEntrega != null and !#strings.isEmpty(p.notasEntrega)}" class="pedido-notas" th:text="${'💬 ' + p.notasEntrega}">Notas</div>
+                        </div>
+
+                        <!-- Resumen de artículos -->
+                        <div class="pedido-articulos">
+                            <div th:if="${#lists.isEmpty(p.lineas)}" class="articulos-vacio">
+                                ⚠️ Sin platos añadidos todavía
+                            </div>
+                            <ul th:unless="${#lists.isEmpty(p.lineas)}" class="articulos-lista">
+                                <li th:each="l : ${p.lineas}">
+                                    <span class="art-cant" th:text="${l.cantidad + 'x'}">1x</span>
+                                    <span class="art-nombre" th:text="${l.producto != null ? l.producto.nombre : 'Plato'}">Arroz</span>
+                                    <span th:if="${l.notas != null and !#strings.isEmpty(l.notas)}" class="art-nota" th:text="${'(' + l.notas + ')'}"></span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Total -->
+                        <div class="pedido-pie">
+                            <div class="pedido-total-box">
+                                <span class="lbl-total">Total:</span>
+                                <span class="val-total" th:text="${#numbers.formatDecimal(p.total, 1, 2) + ' €'}">0.00 €</span>
+                            </div>
+                            <div class="pedido-acciones">
+                                <a th:href="@{/comanda(id=${p.id}, tipo='DOMICILIO')}" class="btn-pedido btn-pedido--editar">
+                                    📝 Platos
+                                </a>
+                                <button type="button" class="btn-pedido btn-pedido--cobrar"
+                                    th:data-id="${p.id}"
+                                    th:data-mesa="${p.mesa}"
+                                    th:data-total="${p.total}"
+                                    onclick="abrirModalCobroDesdeBoton(this)">
+                                    💵 Cobrar
+                                </button>
+                                <form th:action="@{/domicilio/{id}/cancelar(id=${p.id})}" method="post"
+                                    onsubmit="return confirm('¿Seguro que deseas cancelar este pedido?')">
+                                    <button type="submit" class="btn-pedido btn-pedido--cancelar" title="Cancelar pedido">✕</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTORIAL RECIENTE (si hay pedidos finalizados) -->
+            <div th:if="${pedidosFinalizados != null and !#lists.isEmpty(pedidosFinalizados)}" class="domicilio-historial-seccion">
+                <details class="historial-desplegable">
+                    <summary class="historial-resumen-btn">
+                        Ver pedidos cobrados / entregados hoy (<span th:text="${#lists.size(pedidosFinalizados)}">0</span>)
+                    </summary>
+                    <div class="historial-lista">
+                        <div th:each="f : ${pedidosFinalizados}" class="historial-item">
+                            <span class="hist-numero" th:text="${f.mesa}">Domicilio 90</span>
+                            <span class="hist-cliente" th:text="${f.nombreCliente + ' · ' + f.direccionCliente}">Cliente · Dirección</span>
+                            <span class="hist-pago" th:text="${f.metodoPago != null ? f.metodoPago : 'Cobrado'}">EFECTIVO</span>
+                            <span class="hist-total" th:text="${#numbers.formatDecimal(f.total, 1, 2) + ' €'}">0.00 €</span>
+                            <a th:href="@{/comanda(id=${f.id}, tipo='DOMICILIO')}" class="hist-link">Ver</a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- ========================================================
+             POP-UP / NOTIFICACIÓN: PEDIDO CANCELADO
+             ======================================================== -->
+        <div id="popup-cancelado" class="modal-overlay" th:if="${pedidoCanceladoMesa != null}" style="display: flex;">
+            <div class="modal-box modal-box--noti">
+                <div class="noti-icono">✕</div>
+                <h3 class="noti-titulo">Pedido Cancelado</h3>
+                <p class="noti-mensaje" th:text="${'El ' + pedidoCanceladoMesa + ' ha sido cancelado con éxito.'}">Pedido cancelado.</p>
+                <div class="noti-pie">
+                    <button type="button" class="btn-modal btn-modal--confirmar" onclick="cerrarModal('popup-cancelado')">Aceptar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================
+             MODAL: NUEVO PEDIDO A DOMICILIO (SIN EJEMPLOS NI PLACEHOLDERS)
+             ======================================================== -->
+        <div id="modal-nuevo-pedido" class="modal-overlay">
+            <div class="modal-box modal-box--domicilio">
+                <div class="modal-header">
+                    <h2 class="modal-titulo">Nuevo Pedido a Domicilio</h2>
+                    <button type="button" class="modal-cerrar-x" onclick="cerrarModal('modal-nuevo-pedido')">✕</button>
+                </div>
+
+                <form th:action="@{/domicilio/crear}" method="post" class="form-nuevo-domicilio" autocomplete="off">
+                    <!-- Horario de entrega -->
+                    <div class="form-grupo">
+                        <label class="form-etiqueta">Horario de entrega:</label>
+                        <div class="selector-horario-grupo">
+                            <label class="selector-horario-btn">
+                                <input type="radio" name="tipoHorario" value="momento" checked onchange="toggleHorario(false)" />
+                                <span>⚡ Para ahora (Inmediato)</span>
+                            </label>
+                            <label class="selector-horario-btn">
+                                <input type="radio" name="tipoHorario" value="programado" onchange="toggleHorario(true)" />
+                                <span>📅 Programar hora</span>
+                            </label>
+                        </div>
+                        <input type="text" id="input-hora-programada" name="horaProgramada"
+                               class="form-input form-input--hora"
+                               style="display: none; margin-top: 8px;" />
+                    </div>
+
+                    <!-- Datos del cliente (Campos limpios y vacíos) -->
+                    <div class="form-fila">
+                        <div class="form-grupo" style="flex: 1;">
+                            <label class="form-etiqueta">Nombre del cliente *</label>
+                            <input type="text" name="nombreCliente" required class="form-input" />
+                        </div>
+                        <div class="form-grupo" style="flex: 1;">
+                            <label class="form-etiqueta">Teléfono</label>
+                            <input type="tel" name="telefono" id="input-telefono" class="form-input"
+                                   inputmode="numeric"
+                                   pattern="[0-9+ ]*"
+                                   maxlength="15"
+                                   oninput="this.value = this.value.replace(/[^0-9+ ]/g, '')" />
+                        </div>
+                    </div>
+
+                    <div class="form-grupo">
+                        <label class="form-etiqueta">Dirección de entrega *</label>
+                        <input type="text" name="direccion" required class="form-input" />
+                    </div>
+
+                    <div class="form-grupo">
+                        <label class="form-etiqueta">Notas de entrega (opcional)</label>
+                        <input type="text" name="notasEntrega" class="form-input" />
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-modal btn-modal--cancelar" onclick="cerrarModal('modal-nuevo-pedido')">Cancelar</button>
+                        <button type="submit" class="btn-modal btn-modal--confirmar">Continuar y Añadir Platos →</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================================
+             MODAL: COBRO DE PEDIDO
+             ======================================================== -->
+        <div id="modal-cobro" class="modal-overlay">
+            <div class="modal-box modal-box--sm">
+                <div class="modal-header">
+                    <h2 class="modal-titulo">Cobrar Pedido a Domicilio</h2>
+                    <button type="button" class="modal-cerrar-x" onclick="cerrarModal('modal-cobro')">✕</button>
+                </div>
+                <form id="form-cobro" method="post" action="">
+                    <div class="cobro-resumen">
+                        <span id="cobro-pedido-nombre" style="font-weight: 800; font-size: 16px;">Domicilio 90</span>
+                        <div class="cobro-total-box">
+                            <span class="cobro-total-label">Total:</span>
+                            <span class="cobro-total-monto" id="cobro-total-val">0.00 €</span>
+                        </div>
+                    </div>
+
+                    <div class="form-grupo">
+                        <label class="form-etiqueta">Método de Pago:</label>
+                        <div class="selector-origen-grupo">
+                            <label class="selector-origen-btn">
+                                <input type="radio" name="metodoPago" value="EFECTIVO" checked />
+                                <span>💵 Efectivo</span>
+                            </label>
+                            <label class="selector-origen-btn">
+                                <input type="radio" name="metodoPago" value="TARJETA" />
+                                <span>💳 Tarjeta</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-modal btn-modal--cancelar" onclick="cerrarModal('modal-cobro')">Cancelar</button>
+                        <button type="submit" class="btn-modal btn-modal--confirmar">Confirmar Cobro ✓</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Scripts interactivos de la vista -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const btnNuevo = document.getElementById('btn-abrir-modal-nuevo');
+                if (btnNuevo) {
+                    btnNuevo.addEventListener('click', function () {
+                        abrirModal('modal-nuevo-pedido');
+                    });
+                }
+
+                // Auto-cerrar el pop-up de notificación tras 4 segundos
+                const popupCancelado = document.getElementById('popup-cancelado');
+                if (popupCancelado) {
+                    setTimeout(function () {
+                        popupCancelado.style.display = 'none';
+                    }, 4000);
+                }
+            });
+
+            function abrirModal(id) {
+                const m = document.getElementById(id);
+                if (m) m.style.display = 'flex';
+            }
+
+            function cerrarModal(id) {
+                const m = document.getElementById(id);
+                if (m) m.style.display = 'none';
+            }
+
+            function toggleHorario(esProgramado) {
+                const inp = document.getElementById('input-hora-programada');
+                if (inp) {
+                    inp.style.display = esProgramado ? 'block' : 'none';
+                    if (esProgramado) inp.focus();
+                }
+            }
+
+            function abrirModalCobroDesdeBoton(btn) {
+                const comandaId = btn.getAttribute('data-id');
+                const mesa = btn.getAttribute('data-mesa');
+                const total = btn.getAttribute('data-total');
+                abrirModalCobro(comandaId, mesa, total);
+            }
+
+            function abrirModalCobro(comandaId, mesa, total) {
+                const form = document.getElementById('form-cobro');
+                form.action = '/domicilio/' + comandaId + '/cobrar';
+                document.getElementById('cobro-pedido-nombre').textContent = mesa || ('Domicilio #' + comandaId);
+                document.getElementById('cobro-total-val').textContent = (Number(total).toFixed(2)) + ' €';
+                abrirModal('modal-cobro');
+            }
+        </script>
+    </main>
+</body>
+
+</html>
