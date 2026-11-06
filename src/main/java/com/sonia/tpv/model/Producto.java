@@ -58,6 +58,24 @@ public class Producto {
     public Long getId() { return id; }
 
     public String getNombre() { return nombre; }
+
+    public String getNumero() {
+        if (nombre == null) return "";
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^\\s*([A-Za-z]*\\d+[A-Za-z]*)\\s*\\.?").matcher(nombre);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return "";
+    }
+
+    public String getNombreSinNumero() {
+        if (nombre == null) return "";
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^\\s*([A-Za-z]*\\d+[A-Za-z]*)\\s*\\.?\\s*(.*)$").matcher(nombre);
+        if (m.find()) {
+            return m.group(2);
+        }
+        return nombre;
+    }
     public void setNombre(String nombre) { this.nombre = nombre; }
 
     public BigDecimal getPrecio() { return precio; }

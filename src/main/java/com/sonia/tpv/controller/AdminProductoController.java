@@ -98,18 +98,27 @@ public class AdminProductoController {
 
     /** Crea un producto nuevo */
     @PostMapping("/productos/crear")
-    public String crear(@RequestParam String nombre,
+    public String crear(@RequestParam(required = false) String numero,
+            @RequestParam String nombre,
             @RequestParam BigDecimal precio,
             @RequestParam(defaultValue = "GENERAL") String categoria,
             RedirectAttributes flash) {
+        numero = (numero != null) ? numero.trim() : "";
+        if (numero.endsWith(".")) {
+            numero = numero.substring(0, numero.length() - 1).trim();
+        }
         nombre = nombre.trim();
         categoria = categoria.trim();
-        if (nombre.isEmpty()) {
-            flash.addFlashAttribute("error", "El nombre no puede estar vacío.");
+
+        String errorTexto = validarTextoPlato(nombre);
+        if (errorTexto != null) {
+            flash.addFlashAttribute("error", errorTexto);
             return "redirect:/admin/productos";
         }
 
-        String errorCodigo = validarNumeroPlato(nombre, null);
+        String nombreFinal = (!numero.isEmpty()) ? (numero + ". " + nombre) : nombre;
+
+        String errorCodigo = validarNumeroPlato(!numero.isEmpty() ? numero : nombreFinal, null);
         if (errorCodigo != null) {
             flash.addFlashAttribute("error", errorCodigo);
             return "redirect:/admin/productos";
@@ -121,14 +130,14 @@ public class AdminProductoController {
         }
 
         try {
-            int orden = calcularOrden(categoria, nombre);
-            Producto p = new Producto(nombre, precio, categoria, true, orden);
+            int orden = calcularOrden(categoria, nombreFinal);
+            Producto p = new Producto(nombreFinal, precio, categoria, true, orden);
             productoRepository.save(p);
 
             // Registrar en historial
-            historialRepository.save(new ProductoHistorial(p.getId(), Accion.CREAR, nombre, precio, categoria));
+            historialRepository.save(new ProductoHistorial(p.getId(), Accion.CREAR, nombreFinal, precio, categoria));
 
-            flash.addFlashAttribute("ok", "Producto \"" + nombre + "\" creado correctamente en \"" + categoria + "\".");
+            flash.addFlashAttribute("ok", "Producto \"" + nombreFinal + "\" creado correctamente en \"" + categoria + "\".");
         } catch (Exception ex) {
             flash.addFlashAttribute("error", "No se pudo crear el producto: datos o precio no válidos.");
         }
@@ -139,6 +148,7 @@ public class AdminProductoController {
     /** Edita nombre, precio y categoría de un producto */
     @PostMapping("/productos/{id}/editar")
     public String editar(@PathVariable Long id,
+            @RequestParam(required = false) String numero,
             @RequestParam String nombre,
             @RequestParam BigDecimal precio,
             @RequestParam String categoria,
@@ -149,14 +159,22 @@ public class AdminProductoController {
             return "redirect:/admin/productos";
         }
 
+        numero = (numero != null) ? numero.trim() : "";
+        if (numero.endsWith(".")) {
+            numero = numero.substring(0, numero.length() - 1).trim();
+        }
         nombre = nombre.trim();
         categoria = categoria.trim();
-        if (nombre.isEmpty()) {
-            flash.addFlashAttribute("error", "El nombre no puede estar vacío.");
+
+        String errorTexto = validarTextoPlato(nombre);
+        if (errorTexto != null) {
+            flash.addFlashAttribute("error", errorTexto);
             return "redirect:/admin/productos";
         }
 
-        String errorCodigo = validarNumeroPlato(nombre, id);
+        String nombreFinal = (!numero.isEmpty()) ? (numero + ". " + nombre) : nombre;
+
+        String errorCodigo = validarNumeroPlato(!numero.isEmpty() ? numero : nombreFinal, id);
         if (errorCodigo != null) {
             flash.addFlashAttribute("error", errorCodigo);
             return "redirect:/admin/productos";
@@ -172,12 +190,12 @@ public class AdminProductoController {
             historialRepository.save(new ProductoHistorial(p.getId(), Accion.MODIFICAR,
                     p.getNombre(), p.getPrecio(), p.getCategoria()));
 
-            p.setNombre(nombre.trim());
+            p.setNombre(nombreFinal);
             p.setPrecio(precio);
-            p.setCategoria(categoria.trim());
-            p.setOrden(calcularOrden(categoria.trim(), nombre.trim()));
+            p.setCategoria(categoria);
+            p.setOrden(calcularOrden(categoria, nombreFinal));
             productoRepository.save(p);
-            flash.addFlashAttribute("ok", "Producto actualizado correctamente.");
+            flash.addFlashAttribute("ok", "Producto actualizado correctamente a \"" + nombreFinal + "\".");
         } catch (Exception ex) {
             flash.addFlashAttribute("error", "No se pudo actualizar el producto: el precio es demasiado alto.");
         }
@@ -296,6 +314,23 @@ public class AdminProductoController {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Valida que el nombre del plato tenga al menos 2 letras y no contenga puntos ni comas.
+     */
+    private String validarTextoPlato(String nombre) {
+        if (nombre == null || nombre.isBlank()) {
+            return "El nombre del plato no puede estar vacío.";
+        }
+        if (nombre.contains(".") || nombre.contains(",")) {
+            return "El nombre del plato no puede contener puntos ni comas.";
+        }
+        long letras = nombre.codePoints().filter(Character::isLetter).count();
+        if (letras < 2) {
+            return "El nombre del plato debe tener al menos 2 letras.";
+        }
         return null;
     }
 }

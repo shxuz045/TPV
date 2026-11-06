@@ -4,6 +4,465 @@
 <body>
     <main th:fragment="content">
         <div class="admin-page">
+            <style>
+                /* RESET Y ARREGLO TOTAL DE RECUADROS DE FORMULARIO */
+                .admin-form-nuevo {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    align-items: flex-start !important;
+                    gap: 12px !important;
+                    margin-bottom: 24px !important;
+                    padding: 16px 20px 24px 20px !important;
+                    background-color: #ffffff !important;
+                    border: 2px solid #000000 !important;
+                    border-radius: 8px !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-form-editar {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    align-items: flex-start !important;
+                    gap: 10px !important;
+                    padding: 8px 0 20px 0 !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-campo-grupo {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 4px !important;
+                    box-sizing: border-box !important;
+                    position: relative !important;
+                }
+
+                .admin-campo-label {
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.05em !important;
+                    color: #000000 !important;
+                    line-height: 1 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+
+                /* Casillas con altura normal de una línea de texto (sin estiramiento vertical) */
+                .admin-form-nuevo input,
+                .admin-form-nuevo select,
+                .admin-form-editar input,
+                .admin-form-editar select,
+                .admin-input {
+                    flex: none !important;
+                    height: 38px !important;
+                    min-height: 38px !important;
+                    max-height: 38px !important;
+                    padding: 6px 12px !important;
+                    border: 2px solid #000000 !important;
+                    border-radius: 6px !important;
+                    font-size: 14px !important;
+                    line-height: 24px !important;
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-form-nuevo input:focus,
+                .admin-form-nuevo select:focus,
+                .admin-form-editar input:focus,
+                .admin-form-editar select:focus {
+                    outline: none !important;
+                    border-color: #000000 !important;
+                    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2) !important;
+                }
+
+                /* Casilla de Número */
+                .admin-campo-grupo--numero {
+                    width: 75px !important;
+                    flex: 0 0 75px !important;
+                }
+
+                .admin-input--numero {
+                    width: 75px !important;
+                    min-width: 75px !important;
+                    max-width: 75px !important;
+                    text-align: center !important;
+                    font-weight: 700 !important;
+                }
+
+                /* Casilla de Plato */
+                .admin-campo-grupo--nombre {
+                    flex: 1 1 240px !important;
+                    min-width: 180px !important;
+                }
+
+                .admin-input--nombre {
+                    width: 100% !important;
+                    min-width: 180px !important;
+                }
+
+                /* Casilla de Precio */
+                .admin-campo-grupo--precio {
+                    width: 95px !important;
+                    flex: 0 0 95px !important;
+                }
+
+                .admin-input--precio {
+                    width: 95px !important;
+                    min-width: 95px !important;
+                    max-width: 95px !important;
+                    text-align: right !important;
+                    font-weight: 700 !important;
+                }
+
+                /* Casilla de Categoría */
+                .admin-campo-grupo--cat {
+                    flex: 0 0 auto !important;
+                }
+
+                .admin-select-cat {
+                    width: 190px !important;
+                    min-width: 190px !important;
+                    font-weight: 600 !important;
+                    cursor: pointer !important;
+                }
+
+                /* Botones de acción nivelados */
+                .admin-campo-grupo--btn {
+                    flex: 0 0 auto !important;
+                    align-self: flex-start !important;
+                }
+
+                .admin-campo-grupo--btn .admin-btn {
+                    height: 38px !important;
+                    min-height: 38px !important;
+                    max-height: 38px !important;
+                    box-sizing: border-box !important;
+                    padding: 0 16px !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    white-space: nowrap !important;
+                }
+
+                /* Recuadro de error rojo y mensaje de advertencia inline (NO mueve la casilla, se queda quieta) */
+                .admin-input--error,
+                .admin-input--error:focus {
+                    border: 2px solid #dc2626 !important;
+                    background-color: #fef2f2 !important;
+                    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25) !important;
+                    color: #991b1b !important;
+                }
+
+                .admin-campo-error-msg {
+                    display: none;
+                    position: absolute !important;
+                    top: calc(100% + 2px) !important;
+                    left: 0 !important;
+                    font-size: 11px !important;
+                    font-weight: 700 !important;
+                    color: #dc2626 !important;
+                    line-height: 1 !important;
+                    white-space: nowrap !important;
+                    pointer-events: none !important;
+                    z-index: 10 !important;
+                }
+
+                /* SECCIÓN BUSCADOR PERFECTAMENTE DISTRIBUIDA */
+                .admin-buscador-bar {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    align-items: flex-start !important;
+                    gap: 12px !important;
+                    margin-bottom: 24px !important;
+                    padding: 16px 20px !important;
+                    background-color: #ffffff !important;
+                    border: 2px solid #000000 !important;
+                    border-radius: 8px !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-buscador-campo--texto {
+                    flex: 1 1 auto !important;
+                    min-width: 200px !important;
+                }
+
+                .admin-buscador-campo--cat {
+                    width: 220px !important;
+                    flex: 0 0 220px !important;
+                }
+
+                .admin-buscador-campo--btn {
+                    flex: 0 0 auto !important;
+                    align-self: flex-start !important;
+                }
+
+                .admin-buscador-input {
+                    width: 100% !important;
+                    padding: 6px 12px !important;
+                }
+
+                .admin-buscador-select {
+                    width: 100% !important;
+                    font-weight: 600 !important;
+                    cursor: pointer !important;
+                }
+
+                .admin-btn--limpiar-filtro {
+                    height: 38px !important;
+                    min-height: 38px !important;
+                    max-height: 38px !important;
+                    box-sizing: border-box !important;
+                    padding: 0 20px !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    background-color: #000000 !important;
+                    color: #ffffff !important;
+                    border: 1.5px solid #000000 !important;
+                    border-radius: 6px !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    white-space: nowrap !important;
+                    cursor: pointer !important;
+                }
+
+                .admin-btn--limpiar-filtro:hover {
+                    background-color: #333333 !important;
+                    color: #ffffff !important;
+                }
+
+                /* ENVOLTORIO DE TABLA CON BORDE COMPLETO Y VISIBLE */
+                .admin-tabla-wrapper {
+                    width: 100% !important;
+                    border: 2px solid #000000 !important;
+                    border-radius: 8px !important;
+                    overflow: hidden !important;
+                    background-color: #ffffff !important;
+                    margin-bottom: 48px !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-tabla {
+                    width: 100% !important;
+                    table-layout: fixed !important;
+                    border-collapse: collapse !important;
+                    border: none !important;
+                    margin: 0 !important;
+                    font-size: 14px !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-tabla thead tr {
+                    background-color: #ffffff !important;
+                }
+
+                .admin-tabla th {
+                    height: 44px !important;
+                    padding: 0 12px !important;
+                    border-bottom: 2px solid #000000 !important;
+                    font-weight: 800 !important;
+                    font-size: 13px !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.05em !important;
+                    color: #000000 !important;
+                    vertical-align: middle !important;
+                    box-sizing: border-box !important;
+                }
+
+                /* COLUMNAS CON ANCHO FIJO PARA QUE NUNCA SE MUEVAN AL EXPANDIR */
+                .admin-th-numero,
+                .admin-td-numero,
+                .admin-seccion-expansor-box {
+                    width: 80px !important;
+                    min-width: 80px !important;
+                    max-width: 80px !important;
+                    text-align: center !important;
+                    box-sizing: border-box !important;
+                }
+
+                .admin-td-numero {
+                    font-weight: 800 !important;
+                }
+
+                .admin-th-plato,
+                .admin-td-nombre {
+                    width: auto !important;
+                    text-align: left !important;
+                    padding-left: 14px !important;
+                    padding-right: 12px !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    white-space: nowrap !important;
+                }
+
+                .admin-td-nombre {
+                    font-weight: 600 !important;
+                }
+
+                .admin-th-precio,
+                .admin-td-precio {
+                    width: 100px !important;
+                    min-width: 100px !important;
+                    max-width: 100px !important;
+                    text-align: right !important;
+                    padding-right: 16px !important;
+                    box-sizing: border-box !important;
+                    white-space: nowrap !important;
+                    font-weight: 700 !important;
+                }
+
+                .admin-th-cat,
+                .admin-td-cat {
+                    width: 170px !important;
+                    min-width: 170px !important;
+                    max-width: 170px !important;
+                    text-align: left !important;
+                    padding-left: 12px !important;
+                    padding-right: 12px !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    white-space: nowrap !important;
+                }
+
+                .admin-th-acciones,
+                .admin-acciones {
+                    width: 260px !important;
+                    min-width: 260px !important;
+                    max-width: 260px !important;
+                    text-align: center !important;
+                    box-sizing: border-box !important;
+                    white-space: nowrap !important;
+                }
+
+                .admin-tabla td {
+                    height: 44px !important;
+                    padding: 6px 12px !important;
+                    border-bottom: 1px solid #e0e0e0 !important;
+                    vertical-align: middle !important;
+                    box-sizing: border-box !important;
+                }
+
+                /* CABECERA EXPANDIR/RETRAER TODAS */
+                .admin-th-flex {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 8px !important;
+                    width: 100% !important;
+                }
+
+                .admin-btn-toggle-all {
+                    width: 22px !important;
+                    height: 22px !important;
+                    padding: 0 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    border: 1.5px solid #000000 !important;
+                    border-radius: 4px !important;
+                    cursor: pointer !important;
+                    line-height: 1 !important;
+                    transition: background-color 0.15s, color 0.15s !important;
+                }
+
+                .admin-btn-toggle-all:hover {
+                    background-color: #000000 !important;
+                    color: #ffffff !important;
+                }
+
+                /* SECCIONES PRINCIPALES Y EXPANSOR FIJO ALINEADO */
+                .admin-seccion-header-row {
+                    background-color: #000000 !important;
+                    cursor: pointer !important;
+                    user-select: none !important;
+                    height: 42px !important;
+                    border-bottom: 1px solid #1a1a1a !important;
+                }
+
+                .admin-seccion-header-cell {
+                    padding: 0 !important;
+                    background-color: #000000 !important;
+                    color: #ffffff !important;
+                    border: none !important;
+                    height: 42px !important;
+                }
+
+                .admin-seccion-header-inner {
+                    display: flex !important;
+                    align-items: center !important;
+                    height: 42px !important;
+                    width: 100% !important;
+                }
+
+                .admin-seccion-expansor-box {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    height: 100% !important;
+                    flex-shrink: 0 !important;
+                }
+
+                .admin-seccion-btn-triangulo {
+                    width: 22px !important;
+                    height: 22px !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    border: 1.5px solid #ffffff !important;
+                    background-color: #000000 !important;
+                    color: #ffffff !important;
+                    font-size: 10px !important;
+                    line-height: 1 !important;
+                    border-radius: 4px !important;
+                    transition: background-color 0.15s, color 0.15s !important;
+                    cursor: pointer !important;
+                }
+
+                .admin-seccion-header-row:hover .admin-seccion-btn-triangulo {
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                }
+
+                .admin-seccion-btn-triangulo--abierto {
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                }
+
+                .admin-seccion-header-row:hover .admin-seccion-btn-triangulo--abierto {
+                    background-color: #000000 !important;
+                    color: #ffffff !important;
+                }
+
+                .admin-seccion-titulo {
+                    padding-left: 14px !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    letter-spacing: 0.08em !important;
+                    text-transform: uppercase !important;
+                    color: #ffffff !important;
+                    white-space: nowrap !important;
+                }
+
+                /* FILA DE EDICIÓN CON BORDE DELIMITADO */
+                .fila-edicion td {
+                    background-color: #fafafa !important;
+                    padding: 10px 14px 16px 14px !important;
+                    border-bottom: 2px solid #000000 !important;
+                }
+            </style>
+
             <h1 class="admin-titulo">Gestión de Productos</h1>
 
             <!-- Mensajes flash -->
@@ -11,141 +470,203 @@
             <div class="admin-alert admin-alert--error" th:if="${error}" th:text="${error}"></div>
 
             <!-- Formulario: Añadir producto -->
-            <form th:action="@{/admin/productos/crear}" method="post" class="admin-form-nuevo" onsubmit="return prepararCategoriaNuevo(this)">
-                <input type="text" name="nombre" placeholder="Nombre del plato" required class="admin-input" />
-                <input type="number" name="precio" placeholder="Precio" step="0.01" min="0" max="9999.99" required
-                    class="admin-input admin-input--precio" />
-                
-                <div class="admin-cat-input-group">
-                    <select id="select-cat-nuevo" class="admin-input admin-select-cat" onchange="cambiarCategoriaNuevo(this)">
-                        <option value="" disabled selected>-- Elegir categoría --</option>
-                        <option th:each="cat : ${categoriasExistentes}" th:value="${cat}" th:text="${cat}"></option>
-                        <option value="__NUEVA__">➕ Crear nueva categoría...</option>
-                    </select>
-                    <div id="caja-cat-nueva" class="admin-caja-nueva-cat" style="display:none;">
-                        <input type="text" id="input-cat-nueva" placeholder="Escribe nueva categoría" class="admin-input admin-input--nueva-cat"
-                            onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaCategoriaDirecto();}" />
-                        <button type="button" class="admin-btn admin-btn--confirmar-cat" onclick="confirmarNuevaCategoriaDirecto()" title="Añadir a la lista de categorías">+ Añadir</button>
-                        <button type="button" class="admin-btn admin-btn--volver-cat" onclick="volverACategoriaExistente()" title="Volver a existentes">↩</button>
-                    </div>
-                    <input type="hidden" name="categoria" id="hidden-cat-nuevo" required />
+            <form th:action="@{/admin/productos/crear}" method="post" class="admin-form-nuevo" novalidate
+                onsubmit="return prepararCategoriaNuevo(this)">
+                <div class="admin-campo-grupo admin-campo-grupo--numero">
+                    <label class="admin-campo-label">Nº</label>
+                    <input type="text" name="numero" class="admin-input admin-input--numero"
+                        title="Número o código obligatorio del plato" />
+                    <span class="admin-campo-error-msg"></span>
+                </div>
+                <div class="admin-campo-grupo admin-campo-grupo--nombre">
+                    <label class="admin-campo-label">Plato</label>
+                    <input type="text" name="nombre" class="admin-input admin-input--nombre" />
+                    <span class="admin-campo-error-msg"></span>
+                </div>
+                <div class="admin-campo-grupo admin-campo-grupo--precio">
+                    <label class="admin-campo-label">Precio</label>
+                    <input type="number" name="precio" step="0.01" min="0" max="9999.99"
+                        class="admin-input admin-input--precio" />
+                    <span class="admin-campo-error-msg"></span>
                 </div>
 
-                <button type="submit" class="admin-btn admin-btn--crear">+ AÑADIR NUEVO PLATO</button>
+                <div class="admin-campo-grupo admin-campo-grupo--cat">
+                    <label class="admin-campo-label">Categoría</label>
+                    <div class="admin-cat-input-group">
+                        <select id="select-cat-nuevo" class="admin-input admin-select-cat"
+                            onchange="cambiarCategoriaNuevo(this)">
+                            <option value="" disabled selected>Elegir categoría</option>
+                            <option th:each="cat : ${categoriasExistentes}" th:value="${cat}" th:text="${cat}"></option>
+                            <option value="__NUEVA__">➕ Crear nueva categoría...</option>
+                        </select>
+                        <div id="caja-cat-nueva" class="admin-caja-nueva-cat" style="display:none;">
+                            <input type="text" id="input-cat-nueva" placeholder="Escribe nueva categoría"
+                                class="admin-input admin-input--nueva-cat"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaCategoriaDirecto();}" />
+                            <button type="button" class="admin-btn admin-btn--confirmar-cat"
+                                onclick="confirmarNuevaCategoriaDirecto()" title="Añadir a la lista de categorías">+
+                                Añadir</button>
+                            <button type="button" class="admin-btn admin-btn--volver-cat"
+                                onclick="volverACategoriaExistente()" title="Volver a existentes">↩</button>
+                        </div>
+                        <input type="hidden" name="categoria" id="hidden-cat-nuevo" />
+                    </div>
+                    <span class="admin-campo-error-msg"></span>
+                </div>
+
+                <div class="admin-campo-grupo admin-campo-grupo--btn">
+                    <label class="admin-campo-label">&nbsp;</label>
+                    <button type="submit" class="admin-btn admin-btn--crear">+ AÑADIR NUEVO PLATO</button>
+                </div>
             </form>
 
             <!-- Barra de buscador de platos y filtro de categoría -->
             <div class="admin-buscador-bar">
-                <div class="admin-buscador-input-group">
-                    <span class="admin-buscador-icono">🔍</span>
+                <div class="admin-campo-grupo admin-buscador-campo--texto">
+                    <label class="admin-campo-label">BUSCADOR</label>
                     <input type="text" id="buscador-platos" class="admin-input admin-buscador-input"
                         placeholder="Escribe el nombre del plato a buscar..." oninput="filtrarPlatosEnVivo()" />
                 </div>
-                <div class="admin-buscador-cat-group">
-                    <select id="filtro-categoria" class="admin-input admin-buscador-select" onchange="filtrarPlatosEnVivo()">
+                <div class="admin-campo-grupo admin-buscador-campo--cat">
+                    <label class="admin-campo-label">CATEGORÍA</label>
+                    <select id="filtro-categoria" class="admin-input admin-buscador-select"
+                        onchange="filtrarPlatosEnVivo()">
                         <option value="">Todas las categorías</option>
                         <option th:each="cat : ${categoriasExistentes}" th:value="${cat}" th:text="${cat}"></option>
                     </select>
                 </div>
-                <button type="button" class="admin-btn admin-btn--limpiar-filtro" onclick="limpiarFiltroBuscador()" title="Mostrar todas las secciones">Limpiar</button>
+                <div class="admin-campo-grupo admin-buscador-campo--btn">
+                    <label class="admin-campo-label">&nbsp;</label>
+                    <button type="button" class="admin-btn admin-btn--limpiar-filtro" onclick="limpiarFiltroBuscador()"
+                        title="Mostrar todas las secciones">LIMPIAR</button>
+                </div>
             </div>
 
             <!-- Tabla de productos -->
-            <table class="admin-tabla">
-                <thead>
-                    <tr>
-                        <th>
-                            <div class="admin-th-flex">
-                                <div class="admin-toggle-all-group">
+            <div class="admin-tabla-wrapper">
+                <table class="admin-tabla">
+                    <thead>
+                        <tr>
+                            <th class="admin-th-numero">
+                                <div class="admin-th-flex">
                                     <button type="button" class="admin-btn-toggle-all" id="btn-toggle-todas"
-                                            onclick="toggleTodasSecciones(this)" title="Expandir / Retraer todas">＋</button>
+                                        onclick="toggleTodasSecciones(this)" title="Expandir / Retraer todas">＋</button>
+                                    <span class="admin-th-titulo">Nº</span>
                                 </div>
-                                <span class="admin-th-titulo">Nombre</span>
-                            </div>
-                        </th>
-                        <th>Precio</th>
-                        <th>Categoría</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <th:block th:each="p, pStat : ${productos}">
-                        <!-- Fila de cabecera de sección mayor: triangulito hacia abajo al lado de la sección -->
-                        <tr th:if="${pStat.first or p.categoria != productos[pStat.index - 1].categoria}"
-                            class="admin-seccion-header-row"
-                            th:data-cat="${p.categoria}"
-                            onclick="toggleSeccionCategoria(this.getAttribute('data-cat'), this)"
-                            title="Haz clic para expandir o retraer esta sección">
-                            <td colspan="4" class="admin-seccion-header-cell">
-                                <div class="admin-seccion-header-inner">
-                                    <div class="admin-seccion-header-left">
-                                        <span class="admin-seccion-btn-triangulo">▼</span>
+                            </th>
+                            <th class="admin-th-plato">Plato</th>
+                            <th class="admin-th-precio">Precio</th>
+                            <th class="admin-th-cat">Categoría</th>
+                            <th class="admin-th-acciones">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:each="p, pStat : ${productos}">
+                            <!-- Fila de cabecera de sección mayor: triangulito hacia abajo al lado de la sección -->
+                            <tr th:if="${pStat.first or p.categoria != productos[pStat.index - 1].categoria}"
+                                class="admin-seccion-header-row" th:data-cat="${p.categoria}"
+                                onclick="toggleSeccionCategoria(this.getAttribute('data-cat'), this)"
+                                title="Haz clic para expandir o retraer esta sección">
+                                <td colspan="5" class="admin-seccion-header-cell">
+                                    <div class="admin-seccion-header-inner">
+                                        <div class="admin-seccion-expansor-box">
+                                            <span class="admin-seccion-btn-triangulo">▼</span>
+                                        </div>
                                         <span class="admin-seccion-titulo" th:text="${p.categoria}">Categoría</span>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
 
-                        <!-- Fila del plato (cerrada al entrar) -->
-                        <tr class="fila-plato" th:data-categoria-row="${p.categoria}" style="display:none">
-                            <td th:text="${p.nombre}" style="font-weight: 600;"></td>
-                            <td class="admin-td-precio" th:text="${#numbers.formatDecimal(p.precio, 1, 2)} + ' €'"></td>
-                            <td th:text="${p.categoria}"></td>
-                            <td class="admin-acciones">
-                                <button type="button" class="admin-btn admin-btn--editar" th:data-id="${p.id}"
-                                    onclick="toggleEditar(this.getAttribute('data-id'))">✏️ EDITAR PLATO</button>
-                                <form th:action="@{/admin/productos/{id}/eliminar(id=${p.id})}" method="post"
-                                    style="display:inline"
-                                    onsubmit="return confirm('¿Eliminar este plato definitivamente?')">
-                                    <button type="submit" class="admin-btn admin-btn--eliminar">🗑️ BORRAR PLATO</button>
-                                </form>
-                            </td>
-                        </tr>
+                            <!-- Fila del plato (cerrada al entrar) -->
+                            <tr class="fila-plato" th:data-categoria-row="${p.categoria}" style="display:none">
+                                <td class="admin-td-numero" th:text="${p.numero}"></td>
+                                <td class="admin-td-nombre" th:text="${p.nombreSinNumero}"></td>
+                                <td class="admin-td-precio" th:text="${#numbers.formatDecimal(p.precio, 1, 2)} + ' €'"></td>
+                                <td class="admin-td-cat" th:text="${p.categoria}"></td>
+                                <td class="admin-acciones">
+                                    <button type="button" class="admin-btn admin-btn--editar" th:data-id="${p.id}"
+                                        onclick="toggleEditar(this.getAttribute('data-id'))">✏️ EDITAR PLATO</button>
+                                    <form th:action="@{/admin/productos/{id}/eliminar(id=${p.id})}" method="post"
+                                        style="display:inline"
+                                        onsubmit="return confirm('¿Eliminar este plato definitivamente?')">
+                                        <button type="submit" class="admin-btn admin-btn--eliminar">🗑️ BORRAR PLATO</button>
+                                    </form>
+                                </td>
+                            </tr>
 
-                        <!-- Fila de edición oculta por cada producto -->
-                        <tr th:id="'editar-' + ${p.id}" class="fila-edicion" th:data-categoria-row="${p.categoria}" style="display:none">
-                            <td colspan="4">
-                                <form th:action="@{/admin/productos/{id}/editar(id=${p.id})}" method="post"
-                                    class="admin-form-editar"
-                                    th:data-id="${p.id}"
-                                    onsubmit="return prepararCategoriaEditar(this, this.getAttribute('data-id'))">
-                                    <input type="text" name="nombre" th:value="${p.nombre}" required class="admin-input" />
-                                    <input type="number" name="precio" th:value="${p.precio}" step="0.01" min="0" max="9999.99" required
-                                        class="admin-input admin-input--precio" />
-                                    
-                                    <div class="admin-cat-input-group">
-                                        <select th:id="'select-cat-edit-' + ${p.id}" class="admin-input admin-select-cat"
-                                            th:data-id="${p.id}"
-                                            onchange="cambiarCategoriaEditar(this)">
-                                            <option th:each="cat : ${categoriasExistentes}"
-                                                    th:value="${cat}"
-                                                    th:text="${cat}"
-                                                    th:selected="${cat == p.categoria}"></option>
-                                            <option value="__NUEVA__">➕ Crear nueva categoría...</option>
-                                        </select>
-                                        <div th:id="'caja-cat-nueva-edit-' + ${p.id}" class="admin-caja-nueva-cat" style="display:none;">
-                                            <input type="text" th:id="'input-cat-nueva-edit-' + ${p.id}" placeholder="Nueva categoría" class="admin-input admin-input--nueva-cat"
-                                                th:data-id="${p.id}"
-                                                onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaCategoriaEditDirecto(this.getAttribute('data-id'));}" />
-                                            <button type="button" class="admin-btn admin-btn--confirmar-cat"
-                                                th:data-id="${p.id}"
-                                                onclick="confirmarNuevaCategoriaEditDirecto(this.getAttribute('data-id'))" title="Añadir a la lista de categorías">+ Añadir</button>
-                                            <button type="button" class="admin-btn admin-btn--volver-cat"
-                                                th:data-id="${p.id}"
-                                                onclick="volverACategoriaExistenteEdit(this.getAttribute('data-id'))" title="Volver a existentes">↩</button>
+                            <!-- Fila de edición oculta por cada producto -->
+                            <tr th:id="'editar-' + ${p.id}" class="fila-edicion" th:data-categoria-row="${p.categoria}"
+                                style="display:none">
+                                <td colspan="5">
+                                    <form th:action="@{/admin/productos/{id}/editar(id=${p.id})}" method="post"
+                                        class="admin-form-editar" th:data-id="${p.id}" novalidate
+                                        onsubmit="return prepararCategoriaEditar(this, this.getAttribute('data-id'))">
+                                        <div class="admin-campo-grupo admin-campo-grupo--numero">
+                                            <label class="admin-campo-label">Nº</label>
+                                            <input type="text" name="numero" th:value="${p.numero}"
+                                                class="admin-input admin-input--numero" title="Número o código del plato" />
+                                            <span class="admin-campo-error-msg"></span>
                                         </div>
-                                        <input type="hidden" name="categoria" th:id="'hidden-cat-edit-' + ${p.id}" th:value="${p.categoria}" required />
-                                    </div>
+                                        <div class="admin-campo-grupo admin-campo-grupo--nombre">
+                                            <label class="admin-campo-label">Plato</label>
+                                            <input type="text" name="nombre" th:value="${p.nombreSinNumero}"
+                                                class="admin-input admin-input--nombre" />
+                                            <span class="admin-campo-error-msg"></span>
+                                        </div>
+                                        <div class="admin-campo-grupo admin-campo-grupo--precio">
+                                            <label class="admin-campo-label">Precio (€)</label>
+                                            <input type="number" name="precio" th:value="${p.precio}" step="0.01" min="0"
+                                                max="9999.99" class="admin-input admin-input--precio" />
+                                            <span class="admin-campo-error-msg"></span>
+                                        </div>
 
-                                    <button type="submit" class="admin-btn admin-btn--guardar">Guardar</button>
-                                    <button type="button" class="admin-btn admin-btn--cancelar" th:data-id="${p.id}"
-                                        onclick="toggleEditar(this.getAttribute('data-id'))">Cancelar</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </th:block>
-                </tbody>
-            </table>
+                                        <div class="admin-campo-grupo admin-campo-grupo--cat">
+                                            <label class="admin-campo-label">Categoría</label>
+                                            <div class="admin-cat-input-group">
+                                                <select th:id="'select-cat-edit-' + ${p.id}"
+                                                    class="admin-input admin-select-cat" th:data-id="${p.id}"
+                                                    onchange="cambiarCategoriaEditar(this)">
+                                                    <option th:each="cat : ${categoriasExistentes}" th:value="${cat}"
+                                                        th:text="${cat}" th:selected="${cat == p.categoria}"></option>
+                                                    <option value="__NUEVA__">➕ Crear nueva categoría...</option>
+                                                </select>
+                                                <div th:id="'caja-cat-nueva-edit-' + ${p.id}" class="admin-caja-nueva-cat"
+                                                    style="display:none;">
+                                                    <input type="text" th:id="'input-cat-nueva-edit-' + ${p.id}"
+                                                        placeholder="Nueva categoría"
+                                                        class="admin-input admin-input--nueva-cat" th:data-id="${p.id}"
+                                                        onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaCategoriaEditDirecto(this.getAttribute('data-id'));}" />
+                                                    <button type="button" class="admin-btn admin-btn--confirmar-cat"
+                                                        th:data-id="${p.id}"
+                                                        onclick="confirmarNuevaCategoriaEditDirecto(this.getAttribute('data-id'))"
+                                                        title="Añadir a la lista de categorías">+ Añadir</button>
+                                                    <button type="button" class="admin-btn admin-btn--volver-cat"
+                                                        th:data-id="${p.id}"
+                                                        onclick="volverACategoriaExistenteEdit(this.getAttribute('data-id'))"
+                                                        title="Volver a existentes">↩</button>
+                                                </div>
+                                                <input type="hidden" name="categoria" th:id="'hidden-cat-edit-' + ${p.id}"
+                                                    th:value="${p.categoria}" />
+                                            </div>
+                                            <span class="admin-campo-error-msg"></span>
+                                        </div>
+
+                                        <div class="admin-campo-grupo admin-campo-grupo--btn">
+                                            <label class="admin-campo-label">&nbsp;</label>
+                                            <div style="display:flex; gap:6px;">
+                                                <button type="submit" class="admin-btn admin-btn--guardar">Guardar</button>
+                                                <button type="button" class="admin-btn admin-btn--cancelar"
+                                                    th:data-id="${p.id}"
+                                                    onclick="toggleEditar(this.getAttribute('data-id'))">Cancelar</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <script>
@@ -162,15 +683,15 @@
 
                 if (estaAbierta) {
                     // Cerrar / Retraer (triangulito hacia abajo)
-                    platoFilas.forEach(function(fila) { fila.style.display = 'none'; });
-                    edicionFilas.forEach(function(fila) { fila.style.display = 'none'; });
+                    platoFilas.forEach(function (fila) { fila.style.display = 'none'; });
+                    edicionFilas.forEach(function (fila) { fila.style.display = 'none'; });
                     if (icono) {
                         icono.textContent = '▼';
                         icono.classList.remove('admin-seccion-btn-triangulo--abierto');
                     }
                 } else {
                     // Abrir / Expandir (triangulito hacia arriba)
-                    platoFilas.forEach(function(fila) { fila.style.display = ''; });
+                    platoFilas.forEach(function (fila) { fila.style.display = ''; });
                     if (icono) {
                         icono.textContent = '▲';
                         icono.classList.add('admin-seccion-btn-triangulo--abierto');
@@ -183,7 +704,7 @@
                 var btn = document.getElementById('btn-toggle-todas');
                 if (!btn) return;
                 var hayAlgunaAbierta = Array.from(document.querySelectorAll('tr.fila-plato'))
-                    .some(function(fila) { return fila.style.display !== 'none'; });
+                    .some(function (fila) { return fila.style.display !== 'none'; });
                 btn.textContent = hayAlgunaAbierta ? '－' : '＋';
                 btn.title = hayAlgunaAbierta ? 'Retraer todas' : 'Expandir todas';
             }
@@ -191,20 +712,20 @@
             function toggleTodasSecciones(btn) {
                 // Condición real: ¿hay alguna fila de plato visible?
                 var hayAlgunaAbierta = Array.from(document.querySelectorAll('tr.fila-plato'))
-                    .some(function(fila) { return fila.style.display !== 'none'; });
+                    .some(function (fila) { return fila.style.display !== 'none'; });
 
                 if (hayAlgunaAbierta) {
                     // Retraer todo
-                    document.querySelectorAll('tr.fila-plato').forEach(function(fila) { fila.style.display = 'none'; });
-                    document.querySelectorAll('tr.fila-edicion').forEach(function(fila) { fila.style.display = 'none'; });
-                    document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                    document.querySelectorAll('tr.fila-plato').forEach(function (fila) { fila.style.display = 'none'; });
+                    document.querySelectorAll('tr.fila-edicion').forEach(function (fila) { fila.style.display = 'none'; });
+                    document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function (icono) {
                         icono.textContent = '▼';
                         icono.classList.remove('admin-seccion-btn-triangulo--abierto');
                     });
                 } else {
                     // Expandir todo
-                    document.querySelectorAll('tr.fila-plato').forEach(function(fila) { fila.style.display = ''; });
-                    document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                    document.querySelectorAll('tr.fila-plato').forEach(function (fila) { fila.style.display = ''; });
+                    document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function (icono) {
                         icono.textContent = '▲';
                         icono.classList.add('admin-seccion-btn-triangulo--abierto');
                     });
@@ -213,23 +734,23 @@
             }
 
             function expandirTodas() {
-                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                document.querySelectorAll('tr.fila-plato').forEach(function (fila) {
                     fila.style.display = '';
                 });
-                document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function (icono) {
                     icono.textContent = '▲';
                     icono.classList.add('admin-seccion-btn-triangulo--abierto');
                 });
             }
 
             function colapsarTodas() {
-                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                document.querySelectorAll('tr.fila-plato').forEach(function (fila) {
                     fila.style.display = 'none';
                 });
-                document.querySelectorAll('tr.fila-edicion').forEach(function(fila) {
+                document.querySelectorAll('tr.fila-edicion').forEach(function (fila) {
                     fila.style.display = 'none';
                 });
-                document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function(icono) {
+                document.querySelectorAll('.admin-seccion-btn-triangulo').forEach(function (icono) {
                     icono.textContent = '▼';
                     icono.classList.remove('admin-seccion-btn-triangulo--abierto');
                 });
@@ -253,7 +774,7 @@
 
                 // Actualizar todos los selects de categorías en la página
                 var selects = document.querySelectorAll('.admin-select-cat, #filtro-categoria');
-                selects.forEach(function(sel) {
+                selects.forEach(function (sel) {
                     var yaExiste = false;
                     for (var i = 0; i < sel.options.length; i++) {
                         if (sel.options[i].value.toLowerCase() === nombreCat.toLowerCase()) {
@@ -296,12 +817,39 @@
                 }
             }
 
+            function marcarErrorCampo(input, mensaje) {
+                if (!input) return;
+                input.classList.add('admin-input--error');
+                var grupo = input.closest('.admin-campo-grupo') || input.parentElement;
+                if (grupo) {
+                    var errorMsg = grupo.querySelector('.admin-campo-error-msg');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('span');
+                        errorMsg.className = 'admin-campo-error-msg';
+                        grupo.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = mensaje;
+                    errorMsg.style.display = 'block';
+                }
+                input.focus();
+            }
+
+            function limpiarErroresFormulario(form) {
+                if (!form) return;
+                form.querySelectorAll('.admin-input--error').forEach(function (el) {
+                    el.classList.remove('admin-input--error');
+                });
+                form.querySelectorAll('.admin-campo-error-msg').forEach(function (el) {
+                    el.textContent = '';
+                    el.style.display = 'none';
+                });
+            }
+
             function confirmarNuevaCategoriaDirecto() {
                 var input = document.getElementById('input-cat-nueva');
                 var val = (input.value || '').trim();
                 if (!val) {
-                    alert('Por favor, escribe el nombre de la nueva categoría.');
-                    input.focus();
+                    marcarErrorCampo(input, 'Escribe la categoría.');
                     return;
                 }
                 var catFinal = agregarCategoriaALosSelects(val);
@@ -328,49 +876,70 @@
             }
 
             function prepararCategoriaNuevo(form) {
+                limpiarErroresFormulario(form);
+
                 // 0. Validar número/código obligatorio y que no esté duplicado
-                var nombreInput = form.querySelector('input[name="nombre"]');
-                var nombreVal = (nombreInput ? nombreInput.value : '').trim();
-                var matchCodigo = nombreVal.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
+                var numInput = form.querySelector('input[name="numero"]');
+                var numVal = (numInput ? numInput.value : '').trim().replace(/\.$/, '');
+                if (!numVal) {
+                    marcarErrorCampo(numInput, 'El número es obligatorio.');
+                    return false;
+                }
+                var matchCodigo = numVal.match(/^([A-Za-z]*)(\d+)([A-Za-z]*)$/);
                 if (!matchCodigo) {
-                    alert('⚠️ El plato debe tener obligatoriamente un número o código identificador (ejemplos: 8, 8b, 8c, P1).');
-                    if (nombreInput) nombreInput.focus();
+                    marcarErrorCampo(numInput, 'Número no válido (ej: 8, 8b, P1).');
                     return false;
                 }
                 var codNuevo = (matchCodigo[1] + matchCodigo[2] + matchCodigo[3]).toLowerCase();
                 var existeDuplicado = false;
                 var nombreDuplicado = '';
-                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
-                    var tdNombre = fila.querySelector('td:first-child');
-                    if (tdNombre) {
-                        var nExistente = tdNombre.textContent.trim();
-                        var mExistente = nExistente.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
-                        if (mExistente) {
-                            var codEx = (mExistente[1] + mExistente[2] + mExistente[3]).toLowerCase();
-                            if (codEx === codNuevo) {
-                                existeDuplicado = true;
-                                nombreDuplicado = nExistente;
-                            }
+                document.querySelectorAll('tr.fila-plato').forEach(function (fila) {
+                    var tdNumero = fila.children[0];
+                    var tdNombre = fila.children[1];
+                    if (tdNumero) {
+                        var codEx = tdNumero.textContent.trim().toLowerCase();
+                        if (codEx === codNuevo) {
+                            existeDuplicado = true;
+                            nombreDuplicado = (tdNumero.textContent.trim() + '. ' + (tdNombre ? tdNombre.textContent.trim() : '')).trim();
                         }
                     }
                 });
                 if (existeDuplicado) {
-                    alert('⚠️ Ya existe un plato con el número/código "' + codNuevo.toUpperCase() + '" ("' + nombreDuplicado + '"). Los números de plato no se pueden repetir.');
-                    if (nombreInput) nombreInput.focus();
+                    marcarErrorCampo(numInput, 'Número ya repetido en otro plato.');
+                    return false;
+                }
+
+                // Validar nombre del plato (al menos 2 letras, sin puntos ni comas)
+                var platoInput = form.querySelector('input[name="nombre"]');
+                var platoVal = (platoInput ? platoInput.value : '').trim();
+                if (!platoVal) {
+                    marcarErrorCampo(platoInput, 'El nombre no puede estar vacío.');
+                    return false;
+                }
+                if (platoVal.includes('.') || platoVal.includes(',')) {
+                    marcarErrorCampo(platoInput, 'No se permiten puntos (.) ni comas (,).');
+                    return false;
+                }
+                var totalLetras = (platoVal.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length;
+                if (totalLetras < 2) {
+                    marcarErrorCampo(platoInput, 'El plato debe tener por lo menos 2 letras.');
                     return false;
                 }
 
                 // 1. Validar precio para que no se rompa la página
                 var precioInput = form.querySelector('input[name="precio"]');
-                var precioVal = parseFloat(precioInput.value);
+                var precioStr = (precioInput ? precioInput.value : '').trim();
+                if (!precioStr) {
+                    marcarErrorCampo(precioInput, 'Introduce un precio.');
+                    return false;
+                }
+                var precioVal = parseFloat(precioStr);
                 if (isNaN(precioVal) || precioVal < 0) {
-                    alert('Por favor, introduce un precio válido (mayor o igual a 0).');
-                    precioInput.focus();
+                    marcarErrorCampo(precioInput, 'Precio no válido (debe ser ≥ 0).');
                     return false;
                 }
                 if (precioVal > 9999.99) {
-                    alert('El precio es demasiado alto (máximo 9.999,99 €). Por favor, introduce un precio válido.');
-                    precioInput.focus();
+                    marcarErrorCampo(precioInput, 'Precio máximo: 9.999,99 €.');
                     return false;
                 }
 
@@ -382,8 +951,7 @@
                 if (select.value === '__NUEVA__' || select.style.display === 'none') {
                     var val = input.value.trim();
                     if (!val) {
-                        alert('Por favor, escribe el nombre de la nueva categoría.');
-                        input.focus();
+                        marcarErrorCampo(input, 'Escribe la categoría.');
                         return false;
                     }
                     var catFinal = agregarCategoriaALosSelects(val);
@@ -391,8 +959,7 @@
                     hidden.value = catFinal;
                 } else {
                     if (!select.value) {
-                        alert('Por favor, selecciona una categoría existente o crea una nueva.');
-                        select.focus();
+                        marcarErrorCampo(select, 'Selecciona una categoría.');
                         return false;
                     }
                     hidden.value = select.value;
@@ -422,8 +989,7 @@
                 var input = document.getElementById('input-cat-nueva-edit-' + id);
                 var val = (input.value || '').trim();
                 if (!val) {
-                    alert('Por favor, escribe el nombre de la nueva categoría.');
-                    input.focus();
+                    marcarErrorCampo(input, 'Escribe la categoría.');
                     return;
                 }
                 var catFinal = agregarCategoriaALosSelects(val);
@@ -450,53 +1016,74 @@
             }
 
             function prepararCategoriaEditar(form, id) {
+                limpiarErroresFormulario(form);
+
                 // 0. Validar número/código obligatorio y que no esté duplicado en otro plato
-                var nombreInput = form.querySelector('input[name="nombre"]');
-                var nombreVal = (nombreInput ? nombreInput.value : '').trim();
-                var matchCodigo = nombreVal.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
+                var numInput = form.querySelector('input[name="numero"]');
+                var numVal = (numInput ? numInput.value : '').trim().replace(/\.$/, '');
+                if (!numVal) {
+                    marcarErrorCampo(numInput, 'El número es obligatorio.');
+                    return false;
+                }
+                var matchCodigo = numVal.match(/^([A-Za-z]*)(\d+)([A-Za-z]*)$/);
                 if (!matchCodigo) {
-                    alert('⚠️ El plato debe tener obligatoriamente un número o código identificador (ejemplos: 8, 8b, 8c, P1).');
-                    if (nombreInput) nombreInput.focus();
+                    marcarErrorCampo(numInput, 'Número no válido (ej: 8, 8b, P1).');
                     return false;
                 }
                 var codNuevo = (matchCodigo[1] + matchCodigo[2] + matchCodigo[3]).toLowerCase();
                 var existeDuplicado = false;
                 var nombreDuplicado = '';
-                document.querySelectorAll('tr.fila-plato').forEach(function(fila) {
+                document.querySelectorAll('tr.fila-plato').forEach(function (fila) {
                     var btnEdit = fila.querySelector('.admin-btn--editar');
                     if (btnEdit && btnEdit.getAttribute('data-id') === String(id)) {
                         return; // Omitir el propio plato que se edita
                     }
-                    var tdNombre = fila.querySelector('td:first-child');
-                    if (tdNombre) {
-                        var nExistente = tdNombre.textContent.trim();
-                        var mExistente = nExistente.match(/(?:^|\s)([A-Za-z]*)(\d+)([A-Za-z]*)/);
-                        if (mExistente) {
-                            var codEx = (mExistente[1] + mExistente[2] + mExistente[3]).toLowerCase();
-                            if (codEx === codNuevo) {
-                                existeDuplicado = true;
-                                nombreDuplicado = nExistente;
-                            }
+                    var tdNumero = fila.children[0];
+                    var tdNombre = fila.children[1];
+                    if (tdNumero) {
+                        var codEx = tdNumero.textContent.trim().toLowerCase();
+                        if (codEx === codNuevo) {
+                            existeDuplicado = true;
+                            nombreDuplicado = (tdNumero.textContent.trim() + '. ' + (tdNombre ? tdNombre.textContent.trim() : '')).trim();
                         }
                     }
                 });
                 if (existeDuplicado) {
-                    alert('⚠️ Ya existe otro plato con el número/código "' + codNuevo.toUpperCase() + '" ("' + nombreDuplicado + '"). Los números de plato no se pueden repetir.');
-                    if (nombreInput) nombreInput.focus();
+                    marcarErrorCampo(numInput, 'Número ya repetido en otro plato.');
+                    return false;
+                }
+
+                // Validar nombre del plato (al menos 2 letras, sin puntos ni comas)
+                var platoInput = form.querySelector('input[name="nombre"]');
+                var platoVal = (platoInput ? platoInput.value : '').trim();
+                if (!platoVal) {
+                    marcarErrorCampo(platoInput, 'El nombre no puede estar vacío.');
+                    return false;
+                }
+                if (platoVal.includes('.') || platoVal.includes(',')) {
+                    marcarErrorCampo(platoInput, 'No se permiten puntos (.) ni comas (,).');
+                    return false;
+                }
+                var totalLetras = (platoVal.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length;
+                if (totalLetras < 2) {
+                    marcarErrorCampo(platoInput, 'El plato debe tener por lo menos 2 letras.');
                     return false;
                 }
 
                 // 1. Validar precio
                 var precioInput = form.querySelector('input[name="precio"]');
-                var precioVal = parseFloat(precioInput.value);
+                var precioStr = (precioInput ? precioInput.value : '').trim();
+                if (!precioStr) {
+                    marcarErrorCampo(precioInput, 'Introduce un precio.');
+                    return false;
+                }
+                var precioVal = parseFloat(precioStr);
                 if (isNaN(precioVal) || precioVal < 0) {
-                    alert('Por favor, introduce un precio válido (mayor o igual a 0).');
-                    precioInput.focus();
+                    marcarErrorCampo(precioInput, 'Precio no válido (debe ser ≥ 0).');
                     return false;
                 }
                 if (precioVal > 9999.99) {
-                    alert('El precio es demasiado alto (máximo 9.999,99 €). Por favor, introduce un precio válido.');
-                    precioInput.focus();
+                    marcarErrorCampo(precioInput, 'Precio máximo: 9.999,99 €.');
                     return false;
                 }
 
@@ -508,18 +1095,49 @@
                 if (select.value === '__NUEVA__' || select.style.display === 'none') {
                     var val = input.value.trim();
                     if (!val) {
-                        alert('Por favor, escribe el nombre de la nueva categoría.');
-                        input.focus();
+                        marcarErrorCampo(input, 'Escribe la categoría.');
                         return false;
                     }
                     var catFinal = agregarCategoriaALosSelects(val);
                     select.value = catFinal;
                     hidden.value = catFinal;
                 } else {
+                    if (!select.value) {
+                        marcarErrorCampo(select, 'Selecciona una categoría.');
+                        return false;
+                    }
                     hidden.value = select.value;
                 }
                 return true;
             }
+
+            // Quitar el recuadro rojo y error en vivo cuando el usuario edita o escribe
+            document.addEventListener('input', function (e) {
+                if (e.target && e.target.classList.contains('admin-input--error')) {
+                    e.target.classList.remove('admin-input--error');
+                    var grupo = e.target.closest('.admin-campo-grupo') || e.target.parentElement;
+                    if (grupo) {
+                        var errorMsg = grupo.querySelector('.admin-campo-error-msg');
+                        if (errorMsg) {
+                            errorMsg.textContent = '';
+                            errorMsg.style.display = 'none';
+                        }
+                    }
+                }
+            });
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.classList.contains('admin-input--error')) {
+                    e.target.classList.remove('admin-input--error');
+                    var grupo = e.target.closest('.admin-campo-grupo') || e.target.parentElement;
+                    if (grupo) {
+                        var errorMsg = grupo.querySelector('.admin-campo-error-msg');
+                        if (errorMsg) {
+                            errorMsg.textContent = '';
+                            errorMsg.style.display = 'none';
+                        }
+                    }
+                }
+            });
 
             // Buscador en vivo y filtro por categoría
             function filtrarPlatosEnVivo() {
@@ -529,27 +1147,27 @@
                 var headerRows = document.querySelectorAll('.admin-seccion-header-row');
 
                 if (!query && !catFiltro) {
-                    headerRows.forEach(function(row) {
+                    headerRows.forEach(function (row) {
                         row.style.display = '';
                         var cat = row.getAttribute('data-cat');
                         var icono = row.querySelector('.admin-seccion-btn-triangulo');
                         if (icono) icono.textContent = '▼';
-                        document.querySelectorAll('tr.fila-plato[data-categoria-row="' + cat + '"]').forEach(function(f) {
+                        document.querySelectorAll('tr.fila-plato[data-categoria-row="' + cat + '"]').forEach(function (f) {
                             f.style.display = 'none';
                         });
                     });
                     return;
                 }
 
-                headerRows.forEach(function(headerRow) {
+                headerRows.forEach(function (headerRow) {
                     var cat = headerRow.getAttribute('data-cat');
                     var matchCat = (!catFiltro || cat === catFiltro);
 
                     var platos = document.querySelectorAll('tr.fila-plato[data-categoria-row="' + cat + '"]');
                     var platosCoincidentes = 0;
 
-                    platos.forEach(function(platoFila) {
-                        var textoPlato = platoFila.querySelector('td:first-child').textContent.toLowerCase();
+                    platos.forEach(function (platoFila) {
+                        var textoPlato = ((platoFila.children[0] ? platoFila.children[0].textContent : '') + ' ' + (platoFila.children[1] ? platoFila.children[1].textContent : '')).toLowerCase();
                         var matchNombre = (!query || textoPlato.includes(query));
 
                         if (matchCat && matchNombre) {
@@ -578,7 +1196,7 @@
                 filtrarPlatosEnVivo();
             }
 
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 // Al entrar todas las secciones están cerradas
                 colapsarTodas();
             });
