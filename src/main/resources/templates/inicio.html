@@ -3,14 +3,49 @@
 
 <body>
     <main th:fragment="content">
-        <nav>
-            <ul>
-                <li><a th:href="@{/sala}">Sala</a></li>
-                <li><a th:href="@{/recogida}">Recogida</a></li>
-                <li><a th:href="@{/domicilio}">Domicilio</a></li>
-            </ul>
+        <!-- Navegación de los 3 apartados de cajero -->
+        <nav class="service-nav">
+            <a th:href="@{/sala}" class="service-nav__btn">SALA</a>
+            <a th:href="@{/recogida}" class="service-nav__btn">RECOGIDA</a>
+            <a th:href="@{/domicilio}" class="service-nav__btn">DOMICILIO</a>
         </nav>
-        <h2>DISEÑO</h2>
+
+        <!-- Hub principal de cajero con los 3 apartados -->
+        <div class="cajero-hub">
+            <div class="cajero-hub__header">
+                <h1 class="cajero-hub__titulo">SELECCIONA SERVICIO</h1>
+                <p class="cajero-hub__subtitulo">Elige el tipo de pedido para comenzar</p>
+            </div>
+
+            <div class="cajero-hub__grid">
+                <!-- 1. SALA -->
+                <a th:href="@{/sala}" class="cajero-hub__card">
+                    <div class="cajero-hub__card-badge">MESAS 1 – 27</div>
+                    <div class="cajero-hub__icon">🍽️</div>
+                    <h2 class="cajero-hub__card-title">SALA</h2>
+                    <p class="cajero-hub__card-desc">Servicio en mesa del restaurante</p>
+                    <span class="cajero-hub__card-btn">ENTRAR A SALA →</span>
+                </a>
+
+                <!-- 2. RECOGIDA -->
+                <a th:href="@{/recogida}" class="cajero-hub__card">
+                    <div class="cajero-hub__card-badge">PEDIDOS 40 – 89</div>
+                    <div class="cajero-hub__icon">🛍️</div>
+                    <h2 class="cajero-hub__card-title">RECOGIDA</h2>
+                    <p class="cajero-hub__card-desc">Pedidos para llevar en el local</p>
+                    <span class="cajero-hub__card-btn">ENTRAR A RECOGIDA →</span>
+                </a>
+
+                <!-- 3. DOMICILIO -->
+                <a th:href="@{/domicilio}" class="cajero-hub__card">
+                    <div class="cajero-hub__card-badge">PEDIDOS 90+</div>
+                    <div class="cajero-hub__icon">🛵</div>
+                    <h2 class="cajero-hub__card-title">DOMICILIO</h2>
+                    <p class="cajero-hub__card-desc">Reparto a domicilio con dirección y teléfono</p>
+                    <span class="cajero-hub__card-btn">ENTRAR A DOMICILIO →</span>
+                </a>
+            </div>
+        </div>
     </main>
 </body>
 

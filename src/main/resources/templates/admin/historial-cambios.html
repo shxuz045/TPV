@@ -4,11 +4,74 @@
 <body>
     <main th:fragment="content">
         <div class="admin-page">
+
+            <!-- Modal de confirmación para borrar todo el historial -->
+            <div id="modal-borrar-historial" style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.55);
+                z-index: 9999;
+                align-items: center;
+                justify-content: center;
+            ">
+                <div style="
+                    background: #ffffff;
+                    border: 2.5px solid #dc2626;
+                    border-radius: 12px;
+                    padding: 36px 40px 28px 40px;
+                    max-width: 440px;
+                    width: 90%;
+                    box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+                    text-align: center;
+                ">
+                    <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                    <h2 style="font-size: 20px; font-weight: 800; color: #dc2626; margin: 0 0 10px 0;">¿Borrar todo el historial?</h2>
+                    <p style="font-size: 14px; color: #444; margin: 0 0 28px 0; line-height: 1.5;">
+                        Esta acción eliminará <strong>todos los registros</strong> del historial de cambios.<br>
+                        <strong>No se puede deshacer.</strong>
+                    </p>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button type="button"
+                            onclick="document.getElementById('modal-borrar-historial').style.display='none'"
+                            style="
+                                padding: 10px 24px;
+                                background: #ffffff;
+                                color: #000000;
+                                border: 2px solid #000000;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                font-weight: 700;
+                                cursor: pointer;
+                            ">Cancelar</button>
+                        <form th:action="@{/admin/historial/cambios/borrar-todo}" method="post" style="margin:0;">
+                            <button type="submit"
+                                style="
+                                    padding: 10px 24px;
+                                    background: #dc2626;
+                                    color: #ffffff;
+                                    border: 2px solid #dc2626;
+                                    border-radius: 6px;
+                                    font-size: 14px;
+                                    font-weight: 700;
+                                    cursor: pointer;
+                                ">Sí, borrar todo</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <div class="admin-header-flex">
                 <h1 class="admin-titulo">📝 Historial de Cambios</h1>
                 <div class="admin-subnav">
                     <a th:href="@{/admin/productos}" class="admin-btn admin-btn--subnav">🍽️ Gestión de Productos</a>
                     <a th:href="@{/admin/historial/eliminaciones}" class="admin-btn admin-btn--subnav">🗑️ Ver Historial de Eliminaciones</a>
+                    <button th:if="${!#lists.isEmpty(historialCambios)}"
+                            type="button"
+                            class="admin-btn admin-btn--eliminar"
+                            onclick="document.getElementById('modal-borrar-historial').style.display='flex'">
+                        🗑️ Borrar todo el historial
+                    </button>
                 </div>
             </div>
 
@@ -61,4 +124,3 @@
 </body>
 
 </html>
-

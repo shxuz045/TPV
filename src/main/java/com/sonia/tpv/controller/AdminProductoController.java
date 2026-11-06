@@ -221,6 +221,30 @@ public class AdminProductoController {
         return "redirect:/admin/productos";
     }
 
+    /** Borra todo el historial de eliminaciones */
+    @PostMapping("/historial/eliminaciones/borrar-todo")
+    @org.springframework.transaction.annotation.Transactional
+    public String borrarTodoHistorialEliminaciones(Model model) {
+        historialRepository.deleteAllByAccion(Accion.ELIMINAR);
+        historialRepository.flush();
+        model.addAttribute("ok", "Historial de eliminaciones borrado correctamente.");
+        model.addAttribute("historialEliminaciones",
+                historialRepository.findByAccionOrderByFechaDesc(Accion.ELIMINAR));
+        return "admin/historial-eliminaciones";
+    }
+
+    /** Borra todo el historial de cambios (creaciones y modificaciones) */
+    @PostMapping("/historial/cambios/borrar-todo")
+    @org.springframework.transaction.annotation.Transactional
+    public String borrarTodoHistorialCambios(Model model) {
+        historialRepository.deleteAllByAccionIn(java.util.List.of(Accion.CREAR, Accion.MODIFICAR));
+        historialRepository.flush();
+        model.addAttribute("ok", "Historial de cambios borrado correctamente.");
+        model.addAttribute("historialCambios",
+                historialRepository.findByAccionInOrderByFechaDesc(java.util.List.of(Accion.CREAR, Accion.MODIFICAR)));
+        return "admin/historial-cambios";
+    }
+
     /** Revertir un cambio del historial */
     @PostMapping({"/historial/{id}/revertir", "/productos/historial/{id}/revertir"})
     public String revertir(@PathVariable Long id,
