@@ -55,6 +55,9 @@ public class LineaComanda {
     }
 
     public BigDecimal getSubtotal() {
+        if (precioUnitario == null) {
+            return BigDecimal.ZERO;
+        }
         return precioUnitario.multiply(BigDecimal.valueOf(cantidad));
     }
 

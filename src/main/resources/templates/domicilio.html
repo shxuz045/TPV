@@ -141,7 +141,43 @@
                     <button type="button" class="modal-cerrar-x" onclick="cerrarModal('modal-nuevo-pedido')">✕</button>
                 </div>
 
-                <form th:action="@{/domicilio/crear}" method="post" class="form-nuevo-domicilio" autocomplete="off">
+                <form th:action="@{/domicilio/crear}" method="post" class="form-nuevo-domicilio" autocomplete="off" id="form-nuevo-domicilio">
+                    <!-- PASO 1: Teléfono (Primero para verificar si tiene dirección guardada) -->
+                    <div class="form-grupo">
+                        <label class="form-etiqueta" for="input-telefono">Teléfono del cliente *</label>
+                        <div class="tel-input-wrapper">
+                            <input type="tel" name="telefono" id="input-telefono" class="form-input"
+                                   required
+                                   placeholder="Introduce el teléfono..."
+                                   inputmode="numeric"
+                                   pattern="[0-9+ ]*"
+                                   maxlength="15"
+                                   oninput="onTelefonoInput()"
+                                   onblur="comprobarTelefonoActual()"
+                                   autocomplete="off" />
+                            <button type="button" class="btn-comprobar-tel" onclick="comprobarTelefonoActual()">
+                                Comprobar
+                            </button>
+                        </div>
+                        <div id="tel-aviso-box" class="tel-aviso-box" style="display: none;"></div>
+                    </div>
+
+                    <!-- Datos del cliente -->
+                    <div class="form-grupo">
+                        <label class="form-etiqueta" for="input-nombre-cliente">Nombre del cliente (opcional)</label>
+                        <input type="text" name="nombreCliente" id="input-nombre-cliente" class="form-input" />
+                    </div>
+
+                    <div class="form-grupo">
+                        <label class="form-etiqueta" for="input-direccion-cliente">Dirección de entrega *</label>
+                        <input type="text" name="direccion" id="input-direccion-cliente" required class="form-input" />
+                    </div>
+
+                    <div class="form-grupo">
+                        <label class="form-etiqueta" for="input-notas-cliente">Notas de entrega (opcional)</label>
+                        <input type="text" name="notasEntrega" id="input-notas-cliente" class="form-input" />
+                    </div>
+
                     <!-- Horario de entrega -->
                     <div class="form-grupo">
                         <label class="form-etiqueta">Horario de entrega:</label>
@@ -158,32 +194,6 @@
                         <input type="text" id="input-hora-programada" name="horaProgramada"
                                class="form-input form-input--hora"
                                style="display: none; margin-top: 8px;" />
-                    </div>
-
-                    <!-- Datos del cliente (Campos limpios y vacíos) -->
-                    <div class="form-fila">
-                        <div class="form-grupo" style="flex: 1;">
-                            <label class="form-etiqueta">Nombre del cliente *</label>
-                            <input type="text" name="nombreCliente" required class="form-input" />
-                        </div>
-                        <div class="form-grupo" style="flex: 1;">
-                            <label class="form-etiqueta">Teléfono</label>
-                            <input type="tel" name="telefono" id="input-telefono" class="form-input"
-                                   inputmode="numeric"
-                                   pattern="[0-9+ ]*"
-                                   maxlength="15"
-                                   oninput="this.value = this.value.replace(/[^0-9+ ]/g, '')" />
-                        </div>
-                    </div>
-
-                    <div class="form-grupo">
-                        <label class="form-etiqueta">Dirección de entrega *</label>
-                        <input type="text" name="direccion" required class="form-input" />
-                    </div>
-
-                    <div class="form-grupo">
-                        <label class="form-etiqueta">Notas de entrega (opcional)</label>
-                        <input type="text" name="notasEntrega" class="form-input" />
                     </div>
 
                     <div class="modal-footer">
@@ -236,6 +246,9 @@
 
         <!-- Scripts interactivos de la vista -->
         <script>
+            let telDebounceTimer = null;
+            let ultimoTelComprobado = '';
+
             document.addEventListener('DOMContentLoaded', function () {
                 const btnNuevo = document.getElementById('btn-abrir-modal-nuevo');
                 if (btnNuevo) {
@@ -255,12 +268,108 @@
 
             function abrirModal(id) {
                 const m = document.getElementById(id);
-                if (m) m.style.display = 'flex';
+                if (m) {
+                    m.style.display = 'flex';
+                    if (id === 'modal-nuevo-pedido') {
+                        const tel = document.getElementById('input-telefono');
+                        if (tel) {
+                            setTimeout(function () {
+                                tel.focus();
+                            }, 100);
+                        }
+                    }
+                }
             }
 
             function cerrarModal(id) {
                 const m = document.getElementById(id);
                 if (m) m.style.display = 'none';
+                if (id === 'modal-nuevo-pedido') {
+                    ultimoTelComprobado = '';
+                    const avisoBox = document.getElementById('tel-aviso-box');
+                    if (avisoBox) {
+                        avisoBox.style.display = 'none';
+                        avisoBox.innerHTML = '';
+                    }
+                }
+            }
+
+            function onTelefonoInput() {
+                const input = document.getElementById('input-telefono');
+                if (!input) return;
+                input.value = input.value.replace(/[^0-9+ ]/g, '');
+                const digitos = input.value.replace(/[^0-9]/g, '');
+
+                clearTimeout(telDebounceTimer);
+                const avisoBox = document.getElementById('tel-aviso-box');
+                if (digitos.length < 6) {
+                    if (avisoBox) {
+                        avisoBox.style.display = 'none';
+                        avisoBox.innerHTML = '';
+                    }
+                    ultimoTelComprobado = '';
+                    return;
+                }
+
+                if (digitos.length >= 9) {
+                    telDebounceTimer = setTimeout(function () {
+                        comprobarTelefonoActual();
+                    }, 350);
+                }
+            }
+
+            function comprobarTelefonoActual() {
+                const input = document.getElementById('input-telefono');
+                if (!input) return;
+                const telefono = input.value.trim();
+                const digitos = telefono.replace(/[^0-9]/g, '');
+                const avisoBox = document.getElementById('tel-aviso-box');
+
+                if (digitos.length < 6) {
+                    if (avisoBox) {
+                        avisoBox.style.display = 'none';
+                        avisoBox.innerHTML = '';
+                    }
+                    return;
+                }
+
+                if (telefono === ultimoTelComprobado) return;
+                ultimoTelComprobado = telefono;
+
+                fetch('/domicilio/verificar-telefono?telefono=' + encodeURIComponent(telefono))
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!avisoBox) return;
+                        if (data && data.encontrado) {
+                            avisoBox.className = 'tel-aviso-box tel-aviso--encontrado';
+                            avisoBox.innerHTML = '🏠 <strong>Dirección guardada encontrada:</strong> ' +
+                                (data.direccion ? escapeHtml(data.direccion) : '') +
+                                (data.nombre ? ' &mdash; <em>' + escapeHtml(data.nombre) + '</em>' : '');
+                            avisoBox.style.display = 'block';
+
+                            const inputNombre = document.getElementById('input-nombre-cliente');
+                            const inputDir = document.getElementById('input-direccion-cliente');
+                            const inputNotas = document.getElementById('input-notas-cliente');
+
+                            if (inputNombre && data.nombre) inputNombre.value = data.nombre;
+                            if (inputDir && data.direccion) inputDir.value = data.direccion;
+                            if (inputNotas && data.notas) inputNotas.value = data.notas;
+                        } else {
+                            avisoBox.className = 'tel-aviso-box tel-aviso--nuevo';
+                            avisoBox.innerHTML = 'ℹ️ <strong>No hay ninguna dirección guardada</strong> con este teléfono. Introduce los datos del cliente:';
+                            avisoBox.style.display = 'block';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error al verificar teléfono:', err);
+                    });
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
 
             function toggleHorario(esProgramado) {

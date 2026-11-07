@@ -42,15 +42,47 @@ public class ComandaService {
     }
 
     public List<Comanda> listarHistorial() {
-        return comandaRepository.findAllByOrderByFechaCreacionDesc().stream()
-                .filter(c -> c.getLineas() != null && !c.getLineas().isEmpty())
-                .toList();
+        return comandaRepository.findAllByOrderByFechaCreacionDesc();
     }
 
     @Transactional
     public void eliminarComanda(Long comandaId) {
         Comanda comanda = obtener(comandaId);
         comandaRepository.delete(comanda);
+    }
+
+    public java.util.Map<String, Object> buscarClientePorTelefono(String telefono) {
+        java.util.Map<String, Object> resultado = new java.util.HashMap<>();
+        if (telefono == null || telefono.trim().isEmpty()) {
+            resultado.put("encontrado", false);
+            return resultado;
+        }
+
+        String telLimpio = telefono.replaceAll("[^0-9]", "");
+        if (telLimpio.length() < 6) {
+            resultado.put("encontrado", false);
+            return resultado;
+        }
+
+        List<Comanda> todas = comandaRepository.findAllByOrderByFechaCreacionDesc();
+        for (Comanda c : todas) {
+            if (c.getTelefonoCliente() != null) {
+                String cTelLimpio = c.getTelefonoCliente().replaceAll("[^0-9]", "");
+                if (cTelLimpio.equals(telLimpio) || (telLimpio.length() >= 9 && cTelLimpio.endsWith(telLimpio))) {
+                    if (c.getDireccionCliente() != null && !c.getDireccionCliente().isBlank()) {
+                        resultado.put("encontrado", true);
+                        resultado.put("nombre", c.getNombreCliente() != null ? c.getNombreCliente() : "");
+                        resultado.put("direccion", c.getDireccionCliente());
+                        resultado.put("telefono", c.getTelefonoCliente());
+                        resultado.put("notas", c.getNotasEntrega() != null ? c.getNotasEntrega() : "");
+                        return resultado;
+                    }
+                }
+            }
+        }
+
+        resultado.put("encontrado", false);
+        return resultado;
     }
 
     @Transactional
@@ -178,17 +210,20 @@ public class ComandaService {
             throw new IllegalStateException("El producto no está disponible");
         }
 
-        // Si NO tiene notas específicas, podemos agruparlo con una línea existente idéntica sin notas
+        // Si NO tiene notas específicas, podemos agruparlo con una línea existente
+        // idéntica sin notas
         if (nota == null || nota.trim().isEmpty()) {
             for (LineaComanda linea : comanda.getLineas()) {
-                if (linea.getProducto().getId().equals(productoId) && (linea.getNotas() == null || linea.getNotas().trim().isEmpty())) {
+                if (linea.getProducto().getId().equals(productoId)
+                        && (linea.getNotas() == null || linea.getNotas().trim().isEmpty())) {
                     linea.setCantidad(linea.getCantidad() + cantidad);
                     return comandaRepository.save(comanda);
                 }
             }
         }
 
-        // Si tiene notas (ej: menú del día o petición especial), siempre crea una nueva línea con su propia nota
+        // Si tiene notas (ej: menú del día o petición especial), siempre crea una nueva
+        // línea con su propia nota
         LineaComanda linea = new LineaComanda();
         linea.setProducto(producto);
         linea.setCantidad(cantidad);
@@ -255,6 +290,7 @@ public class ComandaService {
     public Comanda marcarTicketImpreso(Long comandaId) {
         Comanda comanda = obtener(comandaId);
         comanda.setTicketImpreso(true);
+
         return comandaRepository.save(comanda);
     }
 

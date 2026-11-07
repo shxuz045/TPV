@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.sonia.tpv.model.Comanda;
@@ -53,8 +54,15 @@ public class DomicilioController {
         return "domicilio";
     }
 
+    @GetMapping("/verificar-telefono")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> verificarTelefono(@RequestParam("telefono") String telefono) {
+        java.util.Map<String, Object> info = comandaService.buscarClientePorTelefono(telefono);
+        return org.springframework.http.ResponseEntity.ok(info);
+    }
+
     @PostMapping("/crear")
-    public String crear(@RequestParam String nombreCliente,
+    public String crear(@RequestParam(required = false, defaultValue = "") String nombreCliente,
             @RequestParam(required = false, defaultValue = "") String telefono,
             @RequestParam String direccion,
             @RequestParam(required = false, defaultValue = "") String notasEntrega,

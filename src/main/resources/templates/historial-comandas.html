@@ -60,27 +60,27 @@
                                   th:text="${'#' + c.id}">#12</span>
                             
                             <span style="font-size: 18px; font-weight: 900; color: #000;"
-                                  th:text="${c.mesa}">Mesa 4</span>
+                                  th:text="${c.mesa != null ? c.mesa : 'Sin mesa'}">Mesa 4</span>
 
                             <span style="font-size: 12px; font-weight: 800; border: 1.5px solid #000; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;"
-                                  th:text="${c.tipoServicio}">SALA</span>
+                                  th:text="${c.tipoServicio != null ? c.tipoServicio : 'SALA'}">SALA</span>
 
                             <!-- Estado Badge -->
-                            <span th:if="${c.estado.name() == 'CERRADA'}"
+                            <span th:if="${c.estado != null and c.estado.name() == 'CERRADA'}"
                                   style="font-size: 12px; font-weight: 800; background: #dcfce7; color: #15803d; border: 1px solid #16a34a; padding: 3px 10px; border-radius: 20px;">
                                 COBRADA
                             </span>
-                            <span th:if="${c.estado.name() == 'ABIERTA'}"
+                            <span th:if="${c.estado != null and c.estado.name() == 'ABIERTA'}"
                                   style="font-size: 12px; font-weight: 800; background: #fef3c7; color: #b45309; border: 1px solid #d97706; padding: 3px 10px; border-radius: 20px;">
                                 ABIERTA
                             </span>
-                            <span th:if="${c.estado.name() == 'CANCELADA'}"
+                            <span th:if="${c.estado != null and c.estado.name() == 'CANCELADA'}"
                                   style="font-size: 12px; font-weight: 800; background: #fee2e2; color: #b91c1c; border: 1px solid #dc2626; padding: 3px 10px; border-radius: 20px;">
                                 CANCELADA
                             </span>
 
                             <span style="font-size: 13px; color: #666; font-weight: 600;"
-                                  th:text="${#temporals.format(c.fechaCreacion, 'dd/MM/yyyy HH:mm')}">
+                                  th:text="${c.fechaCreacion != null ? #temporals.format(c.fechaCreacion, 'dd/MM/yyyy HH:mm') : ''}">
                                 07/11/2026 00:15
                             </span>
                         </div>
@@ -89,7 +89,7 @@
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <div style="text-align: right;">
                                 <div style="font-size: 20px; font-weight: 900; color: #000;"
-                                     th:text="${#numbers.formatDecimal(c.total, 1, 2) + ' €'}">0.00 €</div>
+                                     th:text="${c.total != null ? #numbers.formatDecimal(c.total, 1, 2) + ' €' : '0.00 €'}">0.00 €</div>
                                 <div th:if="${c.metodoPago != null}" style="font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase;"
                                      th:text="${'Pago: ' + c.metodoPago}">Pago: EFECTIVO</div>
                             </div>
@@ -138,7 +138,7 @@
                                                  style="font-size: 11px; color: #6b7280;" th:text="${l.notas}">Notas</div>
                                         </td>
                                         <td style="padding: 6px 8px; text-align: right; font-weight: 800; color: #000;"
-                                            th:text="${#numbers.formatDecimal(l.subtotal, 1, 2) + ' €'}">0.00 €</td>
+                                            th:text="${l.subtotal != null ? #numbers.formatDecimal(l.subtotal, 1, 2) + ' €' : '0.00 €'}">0.00 €</td>
                                     </tr>
                                 </tbody>
                             </table>

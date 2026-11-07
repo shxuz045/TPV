@@ -101,8 +101,11 @@ public class Comanda {
     }
 
     public BigDecimal getTotal() {
+        if (lineas == null) {
+            return BigDecimal.ZERO;
+        }
         return lineas.stream()
-                .map(LineaComanda::getSubtotal)
+                .map(l -> l != null && l.getSubtotal() != null ? l.getSubtotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

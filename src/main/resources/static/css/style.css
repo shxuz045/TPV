@@ -2246,6 +2246,49 @@ body {
     color: #ffffff;
 }
 
+.tel-input-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-comprobar-tel {
+    background-color: #000000;
+    color: #ffffff;
+    border: none;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s;
+}
+
+.btn-comprobar-tel:hover {
+    background-color: #333333;
+}
+
+.tel-aviso-box {
+    margin-top: 6px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.tel-aviso--encontrado {
+    background-color: #e8f5e9;
+    border: 1.5px solid #2e7d32;
+    color: #1b5e20;
+}
+
+.tel-aviso--nuevo {
+    background-color: #e3f2fd;
+    border: 1.5px solid #1976d2;
+    color: #0d47a1;
+}
+
 .cobro-resumen {
     padding: 14px;
     background-color: #f7f7f7;
