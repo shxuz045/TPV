@@ -15,8 +15,8 @@
             <a th:each="num : ${#numbers.sequence(40, 89)}"
                 th:href="@{/comanda(mesa='Recogida ' + ${num}, tipo='RECOGIDA')}" th:text="${num}"
                 class="mesa-btn mesa-cuadrada"
-                th:classappend="${recogidasOcupadas != null && (recogidasOcupadas.contains('Recogida ' + num) || recogidasOcupadas.contains('' + num))} ? 'ocupada' : ''"
-                th:title="${recogidasOcupadas != null && (recogidasOcupadas.contains('Recogida ' + num) || recogidasOcupadas.contains('' + num))} ? 'Recogida ' + num + ' (Comanda abierta)' : 'Recogida ' + num + ' (Libre)'">
+                th:classappend="${(recogidasTicketImpreso != null && (recogidasTicketImpreso.contains('Recogida ' + num) || recogidasTicketImpreso.contains('' + num))) ? 'ticket-impreso' : ((recogidasAparcadas != null && (recogidasAparcadas.contains('Recogida ' + num) || recogidasAparcadas.contains('' + num))) ? 'aparcada' : '')}"
+                th:title="${(recogidasTicketImpreso != null && (recogidasTicketImpreso.contains('Recogida ' + num) || recogidasTicketImpreso.contains('' + num))) ? 'Recogida ' + num + ' (Ticket impreso)' : ((recogidasAparcadas != null && (recogidasAparcadas.contains('Recogida ' + num) || recogidasAparcadas.contains('' + num))) ? 'Recogida ' + num + ' (Aparcada)' : 'Recogida ' + num + ' (Libre)')}">
             </a>
         </div>
     </main>

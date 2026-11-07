@@ -48,9 +48,9 @@ public class ApiComandaController {
     }
 
     @PostMapping("/crear")
-    public ResponseEntity<?> crearComanda(@RequestParam(required = false, defaultValue = "Mesa 1") String mesa,
-                                          @RequestParam(required = false, defaultValue = "SALA") String tipoServicio,
-                                          @RequestParam(required = false) String clienteInfo,
+    public ResponseEntity<?> crearComanda(@RequestParam(value = "mesa", required = false, defaultValue = "Mesa 1") String mesa,
+                                          @RequestParam(value = "tipoServicio", required = false, defaultValue = "SALA") String tipoServicio,
+                                          @RequestParam(value = "clienteInfo", required = false) String clienteInfo,
                                           @AuthenticationPrincipal UserDetails user) {
         TipoServicio tipo = TipoServicio.valueOf(tipoServicio.toUpperCase());
         Comanda comanda = comandaService.crear(mesa, tipo, clienteInfo, user != null ? user.getUsername() : "admin");
@@ -58,11 +58,12 @@ public class ApiComandaController {
     }
 
     @PostMapping("/{id}/lineas")
-    public ResponseEntity<?> anadirLinea(@PathVariable Long id,
-                                         @RequestParam Long productoId,
-                                         @RequestParam(defaultValue = "1") int cantidad,
-                                         @RequestParam(required = false) String mesa,
-                                         @RequestParam(required = false) String tipoServicio,
+    public ResponseEntity<?> anadirLinea(@PathVariable("id") Long id,
+                                         @RequestParam("productoId") Long productoId,
+                                         @RequestParam(value = "cantidad", defaultValue = "1") int cantidad,
+                                         @RequestParam(value = "mesa", required = false) String mesa,
+                                         @RequestParam(value = "tipoServicio", required = false) String tipoServicio,
+                                         @RequestParam(value = "nota", required = false) String nota,
                                          @AuthenticationPrincipal UserDetails user) {
         String username = user != null ? user.getUsername() : "cajero";
         Long targetId = id;
@@ -80,65 +81,83 @@ public class ApiComandaController {
                 return ResponseEntity.status(404).body("Comanda no encontrada: " + id);
             }
         }
-        Comanda comanda = comandaService.anadirProducto(targetId, productoId, cantidad);
+        Comanda comanda = comandaService.anadirProducto(targetId, productoId, cantidad, nota);
         return ResponseEntity.ok(comanda);
     }
 
     @PutMapping("/{id}/lineas/{lineaId}")
-    public ResponseEntity<?> modificarLinea(@PathVariable Long id,
-                                            @PathVariable Long lineaId,
-                                            @RequestParam int cantidad) {
+    public ResponseEntity<?> modificarLinea(@PathVariable("id") Long id,
+                                            @PathVariable("lineaId") Long lineaId,
+                                            @RequestParam("cantidad") int cantidad) {
         Comanda comanda = comandaService.cambiarCantidadLinea(id, lineaId, cantidad);
         return ResponseEntity.ok(comanda);
     }
 
     @PostMapping("/{id}/lineas/{lineaId}/nota")
-    public ResponseEntity<?> anadirNota(@PathVariable Long id,
-                                        @PathVariable Long lineaId,
-                                        @RequestParam(required = false, defaultValue = "") String nota) {
+    public ResponseEntity<?> anadirNota(@PathVariable("id") Long id,
+                                        @PathVariable("lineaId") Long lineaId,
+                                        @RequestParam(value = "nota", required = false, defaultValue = "") String nota) {
         Comanda comanda = comandaService.anadirNotaLinea(id, lineaId, nota);
         return ResponseEntity.ok(comanda);
     }
 
     @DeleteMapping("/{id}/lineas/{lineaId}")
-    public ResponseEntity<?> eliminarLinea(@PathVariable Long id, @PathVariable Long lineaId) {
+    public ResponseEntity<?> eliminarLinea(@PathVariable("id") Long id, @PathVariable("lineaId") Long lineaId) {
         Comanda comanda = comandaService.eliminarLinea(id, lineaId);
         return ResponseEntity.ok(comanda);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarComandaPermanente(@PathVariable("id") Long id) {
+        comandaService.eliminarComanda(id);
+        return ResponseEntity.ok(Map.of("mensaje", "Comanda eliminada"));
+    }
+
+    @PostMapping("/{id}/eliminar")
+    public ResponseEntity<?> eliminarComandaPost(@PathVariable("id") Long id) {
+        comandaService.eliminarComanda(id);
+        return ResponseEntity.ok(Map.of("mensaje", "Comanda eliminada"));
+    }
+
     @PostMapping("/{id}/vaciar")
-    public ResponseEntity<?> vaciarComanda(@PathVariable Long id) {
+    public ResponseEntity<?> vaciarComanda(@PathVariable("id") Long id) {
         Comanda comanda = comandaService.vaciarLineas(id);
         return ResponseEntity.ok(comanda);
     }
 
+    @PostMapping("/{id}/imprimir-ticket")
+    public ResponseEntity<?> registrarTicketImpreso(@PathVariable("id") Long id) {
+        Comanda comanda = comandaService.marcarTicketImpreso(id);
+        return ResponseEntity.ok(comanda);
+    }
+
     @PostMapping("/{id}/servicio")
-    public ResponseEntity<?> cambiarServicio(@PathVariable Long id,
-                                             @RequestParam String tipoServicio,
-                                             @RequestParam(required = false) String mesa,
-                                             @RequestParam(required = false) String clienteInfo) {
+    public ResponseEntity<?> cambiarServicio(@PathVariable("id") Long id,
+                                             @RequestParam("tipoServicio") String tipoServicio,
+                                             @RequestParam(value = "mesa", required = false) String mesa,
+                                             @RequestParam(value = "clienteInfo", required = false) String clienteInfo) {
         TipoServicio tipo = TipoServicio.valueOf(tipoServicio.toUpperCase());
         Comanda comanda = comandaService.actualizarEncabezado(id, tipo, mesa, clienteInfo);
         return ResponseEntity.ok(comanda);
     }
 
     @PostMapping("/{id}/cobrar")
-    public ResponseEntity<?> cobrar(@PathVariable Long id,
-                                    @RequestParam(defaultValue = "EFECTIVO") String metodoPago,
-                                    @RequestParam(required = false) BigDecimal importeEntregado) {
+    public ResponseEntity<?> cobrar(@PathVariable("id") Long id,
+                                    @RequestParam(value = "metodoPago", defaultValue = "EFECTIVO") String metodoPago,
+                                    @RequestParam(value = "importeEntregado", required = false) BigDecimal importeEntregado) {
         Comanda comanda = comandaService.cobrarYCerrar(id, metodoPago, importeEntregado);
         return ResponseEntity.ok(comanda);
     }
 
     @PostMapping("/{id}/cancelar")
-    public ResponseEntity<?> cancelar(@PathVariable Long id) {
+    public ResponseEntity<?> cancelar(@PathVariable("id") Long id) {
         Comanda comanda = comandaService.cancelar(id);
         return ResponseEntity.ok(comanda);
     }
 
     /** Mueve la comanda actual a recogida (asigna primer número libre 40-80) */
     @PostMapping("/{id}/mover-recogida")
-    public ResponseEntity<?> moverARecogida(@PathVariable Long id) {
+    public ResponseEntity<?> moverARecogida(@PathVariable("id") Long id) {
         try {
             Comanda comanda = comandaService.moverARecogida(id);
             return ResponseEntity.ok(comanda);
@@ -149,8 +168,8 @@ public class ApiComandaController {
 
     /** Mueve la comanda a otra mesa libre. Devuelve 409 si la mesa destino está ocupada. */
     @PostMapping("/{id}/mover-mesa")
-    public ResponseEntity<?> moverAMesa(@PathVariable Long id,
-                                        @RequestParam String nuevaMesa) {
+    public ResponseEntity<?> moverAMesa(@PathVariable("id") Long id,
+                                        @RequestParam("nuevaMesa") String nuevaMesa) {
         try {
             Comanda comanda = comandaService.moverAMesa(id, nuevaMesa);
             return ResponseEntity.ok(comanda);

@@ -52,18 +52,34 @@ public class HomeController {
         model.addAttribute("cajeroUsername", user != null ? user.getUsername() : "Cajero");
         comandaService.limpiarComandasVacias();
         List<Comanda> abiertas = comandaService.listarAbiertas();
+
+        Set<String> mesasTicketImpreso = abiertas.stream()
+                .filter(c -> c.getTipoServicio() == TipoServicio.SALA && c.isTicketImpreso())
+                .map(Comanda::getMesa)
+                .filter(m -> m != null && !m.isBlank())
+                .collect(Collectors.toSet());
+
+        Set<String> mesasAparcadas = abiertas.stream()
+                .filter(c -> c.getTipoServicio() == TipoServicio.SALA && !c.isTicketImpreso())
+                .map(Comanda::getMesa)
+                .filter(m -> m != null && !m.isBlank())
+                .collect(Collectors.toSet());
+
         Set<String> mesasOcupadas = abiertas.stream()
                 .filter(c -> c.getTipoServicio() == TipoServicio.SALA)
                 .map(Comanda::getMesa)
                 .filter(m -> m != null && !m.isBlank())
                 .collect(Collectors.toSet());
+
+        model.addAttribute("mesasTicketImpreso", mesasTicketImpreso);
+        model.addAttribute("mesasAparcadas", mesasAparcadas);
         model.addAttribute("mesasOcupadas", mesasOcupadas);
         return "sala";
     }
 
     @GetMapping("/comanda-sala")
     public String comandaSala(Model model,
-            @RequestParam(required = false) String mesa,
+            @RequestParam(value = "mesa", required = false) String mesa,
             @AuthenticationPrincipal UserDetails user) {
         return comanda(model, null, mesa, "SALA", user);
     }
@@ -73,11 +89,27 @@ public class HomeController {
         model.addAttribute("cajeroUsername", user != null ? user.getUsername() : "Cajero");
         comandaService.limpiarComandasVacias();
         List<Comanda> abiertas = comandaService.listarAbiertas();
+
+        Set<String> recogidasTicketImpreso = abiertas.stream()
+                .filter(c -> c.getTipoServicio() == TipoServicio.RECOGIDA && c.isTicketImpreso())
+                .map(Comanda::getMesa)
+                .filter(m -> m != null && !m.isBlank())
+                .collect(Collectors.toSet());
+
+        Set<String> recogidasAparcadas = abiertas.stream()
+                .filter(c -> c.getTipoServicio() == TipoServicio.RECOGIDA && !c.isTicketImpreso())
+                .map(Comanda::getMesa)
+                .filter(m -> m != null && !m.isBlank())
+                .collect(Collectors.toSet());
+
         Set<String> recogidasOcupadas = abiertas.stream()
                 .filter(c -> c.getTipoServicio() == TipoServicio.RECOGIDA)
                 .map(Comanda::getMesa)
                 .filter(m -> m != null && !m.isBlank())
                 .collect(Collectors.toSet());
+
+        model.addAttribute("recogidasTicketImpreso", recogidasTicketImpreso);
+        model.addAttribute("recogidasAparcadas", recogidasAparcadas);
         model.addAttribute("recogidasOcupadas", recogidasOcupadas);
         List<Producto> productosRecogida = productoRepository.findByDisponibleTrueOrderByOrdenAsc();
         productosRecogida.sort(new ProductoComparator());
@@ -87,9 +119,9 @@ public class HomeController {
 
     @GetMapping("/comanda")
     public String comanda(Model model,
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false, defaultValue = "Mesa 1") String mesa,
-            @RequestParam(defaultValue = "SALA") String tipo,
+            @RequestParam(value = "id", required = false) Long id,
+            @RequestParam(value = "mesa", required = false, defaultValue = "Mesa 1") String mesa,
+            @RequestParam(value = "tipo", defaultValue = "SALA") String tipo,
             @AuthenticationPrincipal UserDetails user) {
         String username = user != null ? user.getUsername() : "cajero";
         TipoServicio tipoServicio;
@@ -109,6 +141,15 @@ public class HomeController {
         }
 
         model.addAttribute("cajeroUsername", user != null ? user.getUsername() : "Cajero");
+
+        // Asegurar que existan los menús del día si la base de datos no los tenía
+        if (productoRepository.findByNombre("Menú del Día Estándar").isEmpty()) {
+            productoRepository.save(new Producto("Menú del Día Estándar", new java.math.BigDecimal("13.45"), "Menú del Día", 900));
+        }
+        if (productoRepository.findByNombre("Menú del Día Premium").isEmpty()) {
+            productoRepository.save(new Producto("Menú del Día Premium", new java.math.BigDecimal("14.95"), "Menú del Día", 901));
+        }
+
         List<Producto> productos = productoRepository.findByDisponibleTrueOrderByOrdenAsc();
         productos.sort(new ProductoComparator());
         model.addAttribute("productos", productos);
@@ -121,6 +162,14 @@ public class HomeController {
     @GetMapping("/mesas")
     public String mesas() {
         return "redirect:/sala";
+    }
+
+    @GetMapping("/historial-comandas")
+    public String historialComandas(Model model, @AuthenticationPrincipal UserDetails user) {
+        model.addAttribute("cajeroUsername", user != null ? user.getUsername() : "Cajero");
+        List<Comanda> comandas = comandaService.listarHistorial();
+        model.addAttribute("comandas", comandas);
+        return "historial-comandas";
     }
 
     @GetMapping("/login")

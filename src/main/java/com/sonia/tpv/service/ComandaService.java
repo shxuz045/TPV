@@ -41,6 +41,18 @@ public class ComandaService {
                 .toList();
     }
 
+    public List<Comanda> listarHistorial() {
+        return comandaRepository.findAllByOrderByFechaCreacionDesc().stream()
+                .filter(c -> c.getLineas() != null && !c.getLineas().isEmpty())
+                .toList();
+    }
+
+    @Transactional
+    public void eliminarComanda(Long comandaId) {
+        Comanda comanda = obtener(comandaId);
+        comandaRepository.delete(comanda);
+    }
+
     @Transactional
     public void limpiarComandasVacias() {
         List<Comanda> abiertas = comandaRepository.findByEstadoOrderByFechaCreacionDesc(EstadoComanda.ABIERTA);
@@ -145,6 +157,11 @@ public class ComandaService {
 
     @Transactional
     public Comanda anadirProducto(Long comandaId, Long productoId, int cantidad) {
+        return anadirProducto(comandaId, productoId, cantidad, null);
+    }
+
+    @Transactional
+    public Comanda anadirProducto(Long comandaId, Long productoId, int cantidad, String nota) {
         if (cantidad < 1) {
             throw new IllegalArgumentException("La cantidad debe ser al menos 1");
         }
@@ -161,17 +178,24 @@ public class ComandaService {
             throw new IllegalStateException("El producto no está disponible");
         }
 
-        for (LineaComanda linea : comanda.getLineas()) {
-            if (linea.getProducto().getId().equals(productoId)) {
-                linea.setCantidad(linea.getCantidad() + cantidad);
-                return comandaRepository.save(comanda);
+        // Si NO tiene notas específicas, podemos agruparlo con una línea existente idéntica sin notas
+        if (nota == null || nota.trim().isEmpty()) {
+            for (LineaComanda linea : comanda.getLineas()) {
+                if (linea.getProducto().getId().equals(productoId) && (linea.getNotas() == null || linea.getNotas().trim().isEmpty())) {
+                    linea.setCantidad(linea.getCantidad() + cantidad);
+                    return comandaRepository.save(comanda);
+                }
             }
         }
 
+        // Si tiene notas (ej: menú del día o petición especial), siempre crea una nueva línea con su propia nota
         LineaComanda linea = new LineaComanda();
         linea.setProducto(producto);
         linea.setCantidad(cantidad);
         linea.setPrecioUnitario(producto.getPrecio());
+        if (nota != null && !nota.trim().isEmpty()) {
+            linea.setNotas(nota.trim());
+        }
         comanda.addLinea(linea);
         return comandaRepository.save(comanda);
     }
@@ -223,6 +247,14 @@ public class ComandaService {
             throw new IllegalStateException("La comanda no está abierta");
         }
         comanda.getLineas().clear();
+        comanda.setTicketImpreso(false);
+        return comandaRepository.save(comanda);
+    }
+
+    @Transactional
+    public Comanda marcarTicketImpreso(Long comandaId) {
+        Comanda comanda = obtener(comandaId);
+        comanda.setTicketImpreso(true);
         return comandaRepository.save(comanda);
     }
 
@@ -332,6 +364,9 @@ public class ComandaService {
         }
 
         comanda.setMesa(mesaNormalizada);
+        if (mesaNormalizada.startsWith("Mesa ")) {
+            comanda.setTipoServicio(TipoServicio.SALA);
+        }
         return comandaRepository.save(comanda);
     }
 

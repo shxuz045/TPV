@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TPV - Restaurante ChinaTown</title>
-    <link rel="stylesheet" th:href="@{/css/style.css(v='20261106_7')}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v='20261107_01')}">
 </head>
 
 <body>
@@ -36,6 +36,9 @@
                         <a th:href="@{/admin/productos}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
                             🍽️ Gestión de Productos
                         </a>
+                        <a th:href="@{/historial-comandas}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            📋 Historial de Comandas
+                        </a>
                         <a th:href="@{/admin/historial/eliminaciones}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
                             🗑️ Historial de Eliminaciones
                         </a>
@@ -49,6 +52,9 @@
                             <p class="dropdown-title">Sesión iniciada</p>
                             <p class="dropdown-username" th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">Usuario</p>
                         </div>
+                        <a th:href="@{/historial-comandas}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            📋 Historial de Comandas
+                        </a>
                         <div class="dropdown-divider"></div>
                     </div>
                     <form th:action="@{/logout}" method="post" class="dropdown-logout-form">
@@ -63,8 +69,149 @@
 
     <th:block th:replace="${content}" />
 
-    <!-- Script para abrir/cerrar el desplegable de perfil -->
+    <!-- ===== MODAL GLOBAL DE ALERTAS Y CONFIRMACIONES EN PÁGINA (NADA FUERA) ===== -->
+    <div id="app-global-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999999; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+        <div style="background:#ffffff; border:2.5px solid #000000; border-radius:12px; padding:28px 32px 24px 32px; max-width:440px; width:92%; box-shadow:0 12px 40px rgba(0,0,0,0.35); text-align:center; box-sizing:border-box;">
+            <div id="app-global-modal-icono" style="font-size:42px; margin-bottom:8px; line-height:1;">ℹ️</div>
+            <h3 id="app-global-modal-titulo" style="font-size:18px; font-weight:800; color:#000000; margin:0 0 10px 0; text-transform:uppercase; letter-spacing:0.04em;">Aviso</h3>
+            <p id="app-global-modal-mensaje" style="font-size:14px; color:#374151; margin:0 0 24px 0; line-height:1.5; white-space:pre-line; word-break:break-word;"></p>
+            <div id="app-global-modal-botones" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;"></div>
+        </div>
+    </div>
+
+    <!-- Script para alertas/confirmaciones globales y desplegable de perfil -->
     <script>
+        // ── SISTEMA GLOBAL DE ALERTAS Y CONFIRMACIONES EN PÁGINA ──
+        window.mostrarAlerta = function (mensaje, titulo, onCerrar) {
+            var modal = document.getElementById('app-global-modal');
+            var ico = document.getElementById('app-global-modal-icono');
+            var tit = document.getElementById('app-global-modal-titulo');
+            var msg = document.getElementById('app-global-modal-mensaje');
+            var btns = document.getElementById('app-global-modal-botones');
+            if (!modal) return;
+
+            var texto = String(mensaje || '');
+            if (texto.includes('⚠️') || texto.toLowerCase().includes('error') || texto.toLowerCase().includes('atención')) {
+                ico.textContent = '⚠️';
+            } else if (texto.includes('¡') || texto.includes('éxito') || texto.includes('correct')) {
+                ico.textContent = '✓';
+            } else {
+                ico.textContent = 'ℹ️';
+            }
+
+            tit.textContent = titulo || 'Aviso';
+            msg.textContent = texto.replace(/^[⚠️ℹ️✓❌\s]+/, '');
+            btns.innerHTML = '';
+
+            var btnOk = document.createElement('button');
+            btnOk.type = 'button';
+            btnOk.textContent = 'Entendido';
+            btnOk.style.cssText = 'padding:10px 24px; background:#000000; color:#ffffff; border:2px solid #000000; border-radius:6px; font-size:14px; font-weight:800; cursor:pointer; min-width:110px;';
+            btnOk.onclick = function () {
+                modal.style.display = 'none';
+                if (typeof onCerrar === 'function') onCerrar();
+            };
+            btns.appendChild(btnOk);
+
+            modal.style.display = 'flex';
+            setTimeout(function () { btnOk.focus(); }, 50);
+        };
+
+        window.mostrarConfirmacion = function (mensaje, onConfirmar, onCancelar, opciones) {
+            opciones = opciones || {};
+            var modal = document.getElementById('app-global-modal');
+            var ico = document.getElementById('app-global-modal-icono');
+            var tit = document.getElementById('app-global-modal-titulo');
+            var msg = document.getElementById('app-global-modal-mensaje');
+            var btns = document.getElementById('app-global-modal-botones');
+            if (!modal) return;
+
+            var esPeligroso = !!opciones.peligroso;
+            ico.textContent = esPeligroso ? '⚠️' : '❓';
+            tit.textContent = opciones.titulo || (esPeligroso ? '¿Estás seguro?' : 'Confirmación');
+            msg.textContent = mensaje || '';
+            btns.innerHTML = '';
+
+            var btnCancelar = document.createElement('button');
+            btnCancelar.type = 'button';
+            btnCancelar.textContent = opciones.textoCancelar || 'Cancelar';
+            btnCancelar.style.cssText = 'padding:10px 20px; background:#ffffff; color:#000000; border:2px solid #000000; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; min-width:95px;';
+            btnCancelar.onclick = function () {
+                modal.style.display = 'none';
+                if (typeof onCancelar === 'function') onCancelar();
+            };
+
+            var btnConfirmar = document.createElement('button');
+            btnConfirmar.type = 'button';
+            btnConfirmar.textContent = opciones.textoConfirmar || 'Sí, continuar';
+            if (esPeligroso) {
+                btnConfirmar.style.cssText = 'padding:10px 20px; background:#dc2626; color:#ffffff; border:2px solid #dc2626; border-radius:6px; font-size:14px; font-weight:800; cursor:pointer; min-width:110px;';
+            } else {
+                btnConfirmar.style.cssText = 'padding:10px 20px; background:#000000; color:#ffffff; border:2px solid #000000; border-radius:6px; font-size:14px; font-weight:800; cursor:pointer; min-width:110px;';
+            }
+            btnConfirmar.onclick = function () {
+                modal.style.display = 'none';
+                if (typeof onConfirmar === 'function') onConfirmar();
+            };
+
+            btns.appendChild(btnCancelar);
+            btns.appendChild(btnConfirmar);
+
+            modal.style.display = 'flex';
+            setTimeout(function () { btnConfirmar.focus(); }, 50);
+        };
+
+        // Redirigir window.alert automáticamente al modal en página
+        window.alert = function (msg) {
+            window.mostrarAlerta(msg);
+        };
+
+        // Interceptar botones y formularios con confirm(...) para mostrar el modal dentro de la página
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('button[type="submit"], input[type="submit"]');
+            if (!btn) return;
+            var form = btn.form || btn.closest('form');
+            if (!form || form.dataset.modalConfirmed === 'true') return;
+
+            var onsubmitStr = form.getAttribute('onsubmit') || (form.onsubmit ? form.onsubmit.toString() : '');
+            if (onsubmitStr && onsubmitStr.includes('confirm(')) {
+                var match = onsubmitStr.match(/confirm\(['"](.*?)['"]\)/);
+                if (match && match[1]) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    form.onsubmit = null;
+                    form.removeAttribute('onsubmit');
+                    window.mostrarConfirmacion(match[1], function () {
+                        form.dataset.modalConfirmed = 'true';
+                        form.submit();
+                    }, null, { peligroso: true });
+                }
+            }
+        }, true);
+
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!form || form.tagName !== 'FORM') return;
+            if (form.dataset.modalConfirmed === 'true') return;
+
+            var onsubmitStr = form.getAttribute('onsubmit') || (form.onsubmit ? form.onsubmit.toString() : '');
+            if (onsubmitStr && onsubmitStr.includes('confirm(')) {
+                var match = onsubmitStr.match(/confirm\(['"](.*?)['"]\)/);
+                if (match && match[1]) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    form.onsubmit = null;
+                    form.removeAttribute('onsubmit');
+                    window.mostrarConfirmacion(match[1], function () {
+                        form.dataset.modalConfirmed = 'true';
+                        form.submit();
+                    }, null, { peligroso: true });
+                    return false;
+                }
+            }
+        }, true);
+
+        // Script para abrir/cerrar el desplegable de perfil
         document.addEventListener('DOMContentLoaded', function () {
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userMenuContainer = document.querySelector('.user-menu-container');
@@ -84,6 +231,10 @@
                 document.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
                         userMenuContainer.classList.remove('open');
+                        var modal = document.getElementById('app-global-modal');
+                        if (modal && modal.style.display !== 'none') {
+                            modal.style.display = 'none';
+                        }
                     }
                 });
             }

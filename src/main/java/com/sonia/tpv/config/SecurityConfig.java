@@ -30,8 +30,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/admin/**").hasRole("ADMIN")
                                                 .requestMatchers("/comandas/**", "/comanda/**", "/comanda",
                                                                 "/principal", "/mesas", "/sala", "/recogida",
-                                                                "/domicilio", "/domicilio/**", "/comanda-sala", "/api/**")
-                                                .hasRole("CAJERO")
+                                                                "/domicilio", "/domicilio/**", "/comanda-sala", "/api/**",
+                                                                "/historial-comandas", "/historial-comandas/**")
+                                                .hasAnyRole("CAJERO", "ADMIN")
                                                 .anyRequest().authenticated())
                                 .formLogin(form -> form
                                                 .loginPage("/login")

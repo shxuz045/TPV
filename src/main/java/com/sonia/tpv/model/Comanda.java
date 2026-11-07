@@ -38,6 +38,9 @@ public class Comanda {
 
     private LocalDateTime fechaCierre;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean ticketImpreso = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TipoServicio tipoServicio = TipoServicio.SALA;
@@ -121,6 +124,9 @@ public class Comanda {
 
     public LocalDateTime getFechaCierre() { return fechaCierre; }
     public void setFechaCierre(LocalDateTime fechaCierre) { this.fechaCierre = fechaCierre; }
+
+    public boolean isTicketImpreso() { return ticketImpreso; }
+    public void setTicketImpreso(boolean ticketImpreso) { this.ticketImpreso = ticketImpreso; }
 
     public TipoServicio getTipoServicio() { return tipoServicio; }
     public void setTipoServicio(TipoServicio tipoServicio) { this.tipoServicio = tipoServicio; }
