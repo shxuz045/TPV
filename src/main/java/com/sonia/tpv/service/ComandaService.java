@@ -470,6 +470,40 @@ public class ComandaService {
     }
 
     /**
+     * Actualiza los datos de entrega de un pedido a domicilio existente.
+     */
+    @Transactional
+    public Comanda actualizarDatosDomicilio(Long comandaId,
+            String nombreCliente,
+            String telefono,
+            String direccion,
+            String notasEntrega,
+            String horaEntrega) {
+        Comanda comanda = obtener(comandaId);
+        if (comanda.getEstado() != EstadoComanda.ABIERTA) {
+            throw new IllegalStateException("La comanda no está abierta");
+        }
+        if (nombreCliente != null) {
+            comanda.setNombreCliente(nombreCliente.trim().isEmpty() ? "Cliente" : nombreCliente.trim());
+        }
+        if (telefono != null) {
+            String limpio = telefono.replaceAll("[^0-9]", "");
+            if (limpio.length() > 9) limpio = limpio.substring(0, 9);
+            comanda.setTelefonoCliente(limpio);
+        }
+        if (direccion != null && !direccion.trim().isEmpty()) {
+            comanda.setDireccionCliente(direccion.trim());
+        }
+        if (notasEntrega != null) {
+            comanda.setNotasEntrega(notasEntrega.trim());
+        }
+        if (horaEntrega != null && !horaEntrega.trim().isEmpty()) {
+            comanda.setHoraEntregaProgramada(horaEntrega.trim());
+        }
+        return comandaRepository.save(comanda);
+    }
+
+    /**
      * Avanza o cambia de fase un pedido de Domicilio.
      */
     @Transactional

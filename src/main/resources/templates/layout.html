@@ -1,8 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      lang="es"
-      th:fragment="layout(content)">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es"
+    th:fragment="layout(content)">
 
 <head>
     <meta charset="UTF-8">
@@ -26,34 +24,53 @@
         <div class="header-right">
             <!-- Menú de sesión (se muestra según la cuenta que haya entrado) -->
             <div class="user-menu-container"
-                 th:if="${(#authentication != null and #authentication.name != 'anonymousUser') or (cajeroUsername != null and cajeroUsername != '')}">
-                <button type="button" class="user-menu-btn" id="userMenuBtn" aria-haspopup="true" aria-expanded="false" title="Opciones de perfil">
-                    <span class="user-name" th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">Usuario</span>
+                th:if="${(#authentication != null and #authentication.name != 'anonymousUser') or (cajeroUsername != null and cajeroUsername != '')}">
+                <button type="button" class="user-menu-btn" id="userMenuBtn" aria-haspopup="true" aria-expanded="false"
+                    title="Opciones de perfil">
+                    <span class="user-name"
+                        th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">Usuario</span>
                     <span class="user-arrow"></span>
                 </button>
                 <div class="user-dropdown" id="userDropdown">
                     <div sec:authorize="hasRole('ADMIN')" class="dropdown-admin-link">
-                        <a th:href="@{/admin/productos}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
-                            🍽️ Gestión de Productos
+                        <a th:href="@{/sala}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block; font-weight:800; background:#f9fafb;">
+                            Sala
                         </a>
-                        <a th:href="@{/historial-comandas}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
-                            📋 Historial de Comandas
+                        <div class="dropdown-divider"></div>
+                        <a th:href="@{/admin/productos}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            Gestión de Productos
                         </a>
-                        <a th:href="@{/admin/historial/eliminaciones}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
-                            🗑️ Historial de Eliminaciones
+                        <a th:href="@{/historial-comandas}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            Historial de Comandas
                         </a>
-                        <a th:href="@{/admin/historial/cambios}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
-                            📝 Historial de Cambios
+                        <a th:href="@{/admin/historial/eliminaciones}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            Historial de Eliminaciones
+                        </a>
+                        <a th:href="@{/admin/historial/cambios}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            Historial de Cambios
                         </a>
                         <div class="dropdown-divider"></div>
                     </div>
                     <div sec:authorize="!hasRole('ADMIN')">
                         <div class="dropdown-header">
                             <p class="dropdown-title">Sesión iniciada</p>
-                            <p class="dropdown-username" th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">Usuario</p>
+                            <p class="dropdown-username"
+                                th:text="${#authentication != null and #authentication.name != 'anonymousUser' ? #authentication.name : cajeroUsername}">
+                                Usuario</p>
                         </div>
-                        <a th:href="@{/historial-comandas}" class="dropdown-logout-btn" style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
-                            📋 Historial de Comandas
+                        <a th:href="@{/sala}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block; font-weight:800; background:#f9fafb;">
+                            Sala
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a th:href="@{/historial-comandas}" class="dropdown-logout-btn"
+                            style="text-decoration:none; text-align:left; padding: 10px 16px; display:block;">
+                            Historial de Comandas
                         </a>
                         <div class="dropdown-divider"></div>
                     </div>
@@ -70,12 +87,19 @@
     <th:block th:replace="${content}" />
 
     <!-- ===== MODAL GLOBAL DE ALERTAS Y CONFIRMACIONES EN PÁGINA (NADA FUERA) ===== -->
-    <div id="app-global-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999999; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
-        <div style="background:#ffffff; border:2.5px solid #000000; border-radius:12px; padding:28px 32px 24px 32px; max-width:440px; width:92%; box-shadow:0 12px 40px rgba(0,0,0,0.35); text-align:center; box-sizing:border-box;">
+    <div id="app-global-modal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999999; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+        <div
+            style="background:#ffffff; border:2.5px solid #000000; border-radius:12px; padding:28px 32px 24px 32px; max-width:440px; width:92%; box-shadow:0 12px 40px rgba(0,0,0,0.35); text-align:center; box-sizing:border-box;">
             <div id="app-global-modal-icono" style="font-size:42px; margin-bottom:8px; line-height:1;">ℹ️</div>
-            <h3 id="app-global-modal-titulo" style="font-size:18px; font-weight:800; color:#000000; margin:0 0 10px 0; text-transform:uppercase; letter-spacing:0.04em;">Aviso</h3>
-            <p id="app-global-modal-mensaje" style="font-size:14px; color:#374151; margin:0 0 24px 0; line-height:1.5; white-space:pre-line; word-break:break-word;"></p>
-            <div id="app-global-modal-botones" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;"></div>
+            <h3 id="app-global-modal-titulo"
+                style="font-size:18px; font-weight:800; color:#000000; margin:0 0 10px 0; text-transform:uppercase; letter-spacing:0.04em;">
+                Aviso</h3>
+            <p id="app-global-modal-mensaje"
+                style="font-size:14px; color:#374151; margin:0 0 24px 0; line-height:1.5; white-space:pre-line; word-break:break-word;">
+            </p>
+            <div id="app-global-modal-botones" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            </div>
         </div>
     </div>
 

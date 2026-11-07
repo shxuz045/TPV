@@ -35,16 +35,15 @@ public class HomeController {
         if (user != null && user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             return "redirect:/admin/productos";
         }
-        return "redirect:/principal";
+        return "redirect:/sala";
     }
 
     @GetMapping("/principal")
-    public String principal(Model model, @AuthenticationPrincipal UserDetails user) {
+    public String principal(@AuthenticationPrincipal UserDetails user) {
         if (user != null && user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             return "redirect:/admin/productos";
         }
-        model.addAttribute("cajeroUsername", user != null ? user.getUsername() : "Cajero");
-        return "inicio";
+        return "redirect:/sala";
     }
 
     @GetMapping("/sala")

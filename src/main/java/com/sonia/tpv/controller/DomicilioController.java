@@ -2,23 +2,21 @@ package com.sonia.tpv.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.sonia.tpv.model.Comanda;
 import com.sonia.tpv.model.EstadoComanda;
 import com.sonia.tpv.model.FaseDomicilio;
 import com.sonia.tpv.model.OrigenPedido;
+import com.sonia.tpv.service.ClienteDomicilioService;
 import com.sonia.tpv.service.ComandaService;
 
 @Controller
@@ -26,43 +24,46 @@ import com.sonia.tpv.service.ComandaService;
 public class DomicilioController {
 
     private final ComandaService comandaService;
+    private final ClienteDomicilioService clienteService;
 
-    public DomicilioController(ComandaService comandaService) {
+    public DomicilioController(ComandaService comandaService, ClienteDomicilioService clienteService) {
         this.comandaService = comandaService;
+        this.clienteService = clienteService;
     }
 
     @GetMapping
     public String index(Model model, @AuthenticationPrincipal UserDetails user) {
         model.addAttribute("cajeroUsername", user != null ? user.getUsername() : "Cajero");
-
         List<Comanda> todos = comandaService.listarDomicilios();
-
-        // Pedidos a domicilio abiertos actualmente
-        List<Comanda> activos = todos.stream()
-                .filter(c -> c.getEstado() == EstadoComanda.ABIERTA)
+        List<Comanda> activos = todos.stream().filter(c -> c.getEstado() == EstadoComanda.ABIERTA).toList();
+        List<Comanda> finalizados = todos.stream().filter(c -> c.getEstado() == EstadoComanda.CERRADA).limit(15)
                 .toList();
-
-        // Historial reciente de pedidos entregados/cobrados
-        List<Comanda> finalizados = todos.stream()
-                .filter(c -> c.getEstado() == EstadoComanda.CERRADA)
-                .limit(15)
-                .toList();
-
         model.addAttribute("pedidosActivos", activos);
         model.addAttribute("pedidosFinalizados", finalizados);
-
         return "domicilio";
     }
 
+    /** API: buscar cliente por teléfono — devuelve nombre, lista de direcciones */
     @GetMapping("/verificar-telefono")
     @ResponseBody
-    public org.springframework.http.ResponseEntity<?> verificarTelefono(@RequestParam("telefono") String telefono) {
-        java.util.Map<String, Object> info = comandaService.buscarClientePorTelefono(telefono);
-        return org.springframework.http.ResponseEntity.ok(info);
+    public ResponseEntity<Map<String, Object>> verificarTelefono(@RequestParam("telefono") String telefono) {
+        Map<String, Object> info = clienteService.buscarPorTelefono(telefono);
+        return ResponseEntity.ok(info);
+    }
+
+    /** API: eliminar una dirección guardada de un cliente */
+    @PostMapping("/cliente/eliminar-direccion")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> eliminarDireccion(
+            @RequestParam String telefono,
+            @RequestParam String direccion) {
+        Map<String, Object> resultado = clienteService.eliminarDireccion(telefono, direccion);
+        return ResponseEntity.ok(resultado);
     }
 
     @PostMapping("/crear")
-    public String crear(@RequestParam(required = false, defaultValue = "") String nombreCliente,
+    public String crear(
+            @RequestParam(required = false, defaultValue = "") String nombreCliente,
             @RequestParam(required = false, defaultValue = "") String telefono,
             @RequestParam String direccion,
             @RequestParam(required = false, defaultValue = "") String notasEntrega,
@@ -77,16 +78,16 @@ public class DomicilioController {
             horaFinal = horaProgramada.trim();
         }
 
-        Comanda comanda = comandaService.crearDomicilio(
-                nombreCliente,
-                telefono,
-                direccion,
-                notasEntrega,
-                horaFinal,
-                username);
+        String telefonoLimpio = clienteService.limpiarTelefono(telefono);
 
-        flash.addFlashAttribute("mensajeOk",
-                "Pedido " + comanda.getMesa() + " registrado. Añade los platos a continuación.");
+        // Guardar/actualizar cliente en la tabla de clientes
+        if (!telefonoLimpio.isBlank()) {
+            clienteService.guardarOActualizar(telefonoLimpio, nombreCliente, direccion);
+        }
+
+        Comanda comanda = comandaService.crearDomicilio(nombreCliente, telefonoLimpio, direccion, notasEntrega, horaFinal, username);
+        flash.addFlashAttribute("mensajeOk", "Pedido " + comanda.getMesa() + " registrado. Añade los platos a continuación.");
+
         return "redirect:/comanda?id=" + comanda.getId() + "&tipo=DOMICILIO";
     }
 

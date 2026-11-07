@@ -21,6 +21,7 @@ import com.sonia.tpv.model.Comanda;
 import com.sonia.tpv.model.Producto;
 import com.sonia.tpv.model.TipoServicio;
 import com.sonia.tpv.repository.ProductoRepository;
+import com.sonia.tpv.service.ClienteDomicilioService;
 import com.sonia.tpv.service.ComandaService;
 import com.sonia.tpv.util.ProductoComparator;
 
@@ -30,10 +31,14 @@ public class ApiComandaController {
 
     private final ComandaService comandaService;
     private final ProductoRepository productoRepository;
+    private final ClienteDomicilioService clienteDomicilioService;
 
-    public ApiComandaController(ComandaService comandaService, ProductoRepository productoRepository) {
+    public ApiComandaController(ComandaService comandaService,
+            ProductoRepository productoRepository,
+            ClienteDomicilioService clienteDomicilioService) {
         this.comandaService = comandaService;
         this.productoRepository = productoRepository;
+        this.clienteDomicilioService = clienteDomicilioService;
     }
 
     @GetMapping("/data")
@@ -189,6 +194,27 @@ public class ApiComandaController {
             return ResponseEntity.ok(comanda);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(e.getMessage());
+        }
+    }
+
+    /**
+     * Actualiza la información de entrega de una comanda a domicilio (dirección, teléfono, nombre, notas, hora).
+     */
+    @PostMapping("/{id}/domicilio-info")
+    public ResponseEntity<?> actualizarDomicilioInfo(@PathVariable("id") Long id,
+            @RequestParam(value = "nombreCliente", required = false) String nombreCliente,
+            @RequestParam(value = "telefono", required = false) String telefono,
+            @RequestParam(value = "direccion") String direccion,
+            @RequestParam(value = "notasEntrega", required = false) String notasEntrega,
+            @RequestParam(value = "horaEntrega", required = false) String horaEntrega) {
+        try {
+            Comanda comanda = comandaService.actualizarDatosDomicilio(id, nombreCliente, telefono, direccion, notasEntrega, horaEntrega);
+            if (telefono != null && !telefono.isBlank() && direccion != null && !direccion.isBlank()) {
+                clienteDomicilioService.guardarOActualizar(telefono, nombreCliente, direccion);
+            }
+            return ResponseEntity.ok(comanda);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }

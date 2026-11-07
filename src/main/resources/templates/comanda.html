@@ -17,26 +17,35 @@
                             <span class="comanda-header__tipo"
                                 th:text="${tipoServicio == 'RECOGIDA' ? 'RECOGIDA' : (tipoServicio == 'DOMICILIO' ? 'DOMICILIO' : 'MESA')}">MESA</span>
                             <span class="comanda-header__numero" id="comanda-numero-display"
-                                th:text="${comanda != null ? (comanda.mesa.replace('Mesa ', '').replace('Recogida ', '')) : '1'}">2</span>
+                                th:text="${comanda != null ? (comanda.mesa.replace('Mesa ', '').replace('Recogida ', '').replace('Domicilio ', '')) : '1'}">2</span>
                         </div>
-                        <div th:if="${tipoServicio == 'DOMICILIO' and comanda != null and comanda.nombreCliente != null}"
-                            class="comanda-domicilio-info">
-                            <div class="comanda-domicilio-cliente"
-                                th:text="${comanda.nombreCliente + (comanda.telefonoCliente != null and !#strings.isEmpty(comanda.telefonoCliente) ? ' · 📞 ' + comanda.telefonoCliente : '')}">
-                                Cliente</div>
-                            <div class="comanda-domicilio-direccion" th:text="${'📍 ' + comanda.direccionCliente}">
+                        <div th:if="${tipoServicio == 'DOMICILIO' and comanda != null}"
+                            class="comanda-domicilio-info"
+                            id="comanda-domicilio-info-box"
+                            onclick="abrirModalEditarDomicilio()"
+                            style="cursor: pointer;"
+                            title="Toca para editar datos de entrega (dirección, teléfono, notas...)">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <span class="comanda-domicilio-cliente" id="domicilio-info-cliente"
+                                    th:text="${(comanda.nombreCliente != null ? comanda.nombreCliente : 'Cliente') + (comanda.telefonoCliente != null and !#strings.isEmpty(comanda.telefonoCliente) ? ' · 📞 ' + comanda.telefonoCliente : '')}">
+                                    Cliente</span>
+                                <span style="font-size:11px; color:#2563eb; font-weight:800; background:#eff6ff; padding:2px 6px; border-radius:4px; border:1px solid #bfdbfe;">✏️ Editar</span>
+                            </div>
+                            <div class="comanda-domicilio-direccion" id="domicilio-info-direccion" th:text="${'📍 ' + (comanda.direccionCliente != null ? comanda.direccionCliente : '')}">
                                 Dirección</div>
-                            <div class="comanda-domicilio-hora" th:text="${'⏰ ' + comanda.horaEntregaProgramada}">Al
+                            <div class="comanda-domicilio-hora" id="domicilio-info-hora" th:text="${'⏰ ' + (comanda.horaEntregaProgramada != null ? comanda.horaEntregaProgramada : 'Al momento')}">Al
                                 momento</div>
+                            <div th:if="${comanda.notasEntrega != null and !#strings.isEmpty(comanda.notasEntrega)}"
+                                 class="comanda-domicilio-notas" id="domicilio-info-notas"
+                                 th:text="${'💬 ' + comanda.notasEntrega}" style="font-size:11px; color:#555; font-style:italic;">
+                            </div>
                         </div>
                         <div class="comanda-header__botones">
-                            <a th:href="${tipoServicio == 'RECOGIDA' ? '/recogida' : (tipoServicio == 'DOMICILIO' ? '/domicilio' : '/sala')}"
-                                class="comanda-btn-header comanda-btn-header--atras">Atrás</a>
                             <button type="button" class="comanda-btn-header" id="btn-aparcar" title="Aparcar comanda y volver" style="background:#000000; color:#ffffff; font-weight:800;">
                                 Aparcar
                             </button>
-                            <button type="button" class="comanda-btn-header" id="btn-borrar-comanda" title="Borrar toda la comanda" style="background:#ffffff; color:#dc2626; border-color:#dc2626; font-weight:800;">
-                                Borrar
+                            <button type="button" class="comanda-btn-header" id="btn-borrar-comanda" title="Borrar y cancelar comanda completa" style="background:#ffffff; color:#dc2626; border-color:#dc2626; font-weight:800;">
+                                Borrar Comanda
                             </button>
                             <button th:if="${tipoServicio == 'SALA'}" type="button"
                                 class="comanda-btn-header comanda-btn-header--recogida" id="btn-mover-recogida"
@@ -282,6 +291,82 @@
             </div>
         </div>
 
+        <!-- ===== MODAL: EDITAR DATOS DE ENTREGA A DOMICILIO ===== -->
+        <div id="modal-editar-domicilio" class="modal-overlay" style="display:none;">
+            <div class="modal-box" style="max-width: 460px; width: 92%; padding: 24px;">
+                <div class="modal-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3 class="modal-title" style="font-size: 19px;">Editar Datos de Entrega</h3>
+                        <p class="modal-desc" style="margin-top:2px;">Modifica el teléfono, nombre, dirección u horario</p>
+                    </div>
+                    <button type="button" class="modal-cerrar-x" onclick="cerrarModalEditarDomicilio()">✕</button>
+                </div>
+
+                <form id="form-editar-domicilio" onsubmit="guardarDatosDomicilio(event)">
+                    <!-- Teléfono -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">📞 Teléfono (9 dígitos) *</label>
+                        <input type="tel" id="edit-domicilio-telefono"
+                               required
+                               maxlength="9"
+                               inputmode="numeric"
+                               pattern="[0-9]{9}"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9);"
+                               style="width:100%; height:44px; padding:0 12px; font-size:16px; font-weight:700; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Nombre -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">Nombre del cliente</label>
+                        <input type="text" id="edit-domicilio-nombre"
+                               maxlength="80"
+                               style="width:100%; height:44px; padding:0 12px; font-size:15px; font-weight:600; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Dirección -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">📍 Dirección de entrega *</label>
+                        <input type="text" id="edit-domicilio-direccion"
+                               required
+                               maxlength="200"
+                               style="width:100%; height:44px; padding:0 12px; font-size:15px; font-weight:600; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Notas -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">💬 Notas de entrega</label>
+                        <input type="text" id="edit-domicilio-notas"
+                               placeholder="Ej: Timbre no funciona, piso 2..."
+                               maxlength="200"
+                               style="width:100%; height:44px; padding:0 12px; font-size:14px; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Horario -->
+                    <div style="margin-bottom: 18px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">⏰ Horario de entrega</label>
+                        <div style="display:flex; gap:10px; margin-bottom:6px;">
+                            <label style="flex:1; display:flex; align-items:center; gap:6px; padding:8px 12px; border:2px solid #000; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700;">
+                                <input type="radio" name="edit-domicilio-horario-tipo" value="momento" onchange="toggleEditHorario(false)" checked />
+                                <span>Al momento</span>
+                            </label>
+                            <label style="flex:1; display:flex; align-items:center; gap:6px; padding:8px 12px; border:2px solid #000; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700;">
+                                <input type="radio" name="edit-domicilio-horario-tipo" value="programado" onchange="toggleEditHorario(true)" />
+                                <span>Programar hora</span>
+                            </label>
+                        </div>
+                        <input type="text" id="edit-domicilio-hora-prog"
+                               placeholder="Ej: 21:30"
+                               style="display:none; width:100%; height:40px; padding:0 12px; font-size:15px; font-weight:700; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+                        <button type="button" class="modal-btn modal-btn--cancel" onclick="cerrarModalEditarDomicilio()">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn--confirm" id="btn-guardar-edit-domicilio">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- ===== MODAL COBRAR ===== -->
         <div id="modal-cobrar" class="modal-overlay" style="display:none;">
             <div class="modal-box" style="max-width:480px; width:92%; padding:24px 28px;">
@@ -358,6 +443,14 @@
             let comandaId = /*[[${comanda != null ? comanda.id : 0}]]*/ 0;
             const comandaMesa = /*[[${comanda != null ? comanda.mesa : 'Mesa'}]]*/ 'Mesa';
             const tipoServicio = /*[[${tipoServicio != null ? tipoServicio : 'SALA'}]]*/ 'SALA';
+
+            let clienteDomicilioActual = {
+                nombre: /*[[${comanda != null && comanda.nombreCliente != null ? comanda.nombreCliente : ''}]]*/ '',
+                telefono: /*[[${comanda != null && comanda.telefonoCliente != null ? comanda.telefonoCliente : ''}]]*/ '',
+                direccion: /*[[${comanda != null && comanda.direccionCliente != null ? comanda.direccionCliente : ''}]]*/ '',
+                notas: /*[[${comanda != null && comanda.notasEntrega != null ? comanda.notasEntrega : ''}]]*/ '',
+                hora: /*[[${comanda != null && comanda.horaEntregaProgramada != null ? comanda.horaEntregaProgramada : 'Al momento'}]]*/ 'Al momento'
+            };
 
             /* Inicializamos las líneas con los datos existentes de la base de datos */
             let lineas = [
@@ -690,34 +783,32 @@
                 });
             }
 
-            // ── Borrar Toda la Comanda ──
+            // ── Borrar / Cancelar Toda la Comanda ──
             const btnBorrarComanda = document.getElementById('btn-borrar-comanda');
             if (btnBorrarComanda) {
                 btnBorrarComanda.addEventListener('click', function () {
-                    if (!lineas || lineas.length === 0) {
-                        mostrarAlerta('La comanda ya está vacía.');
-                        return;
-                    }
+                    const textoConfirm = `¿Estás seguro de que deseas borrar por completo la comanda de ${comandaMesa}?\n\nLa comanda se cancelará y volverás a la pantalla anterior.`;
 
-                    mostrarConfirmacion(`¿Estás seguro de que deseas borrar toda la comanda de ${comandaMesa}?\nSe eliminarán todos los platos añadidos.`, async function () {
+                    mostrarConfirmacion(textoConfirm, async function () {
                         btnBorrarComanda.disabled = true;
                         try {
-                            const res = await fetch('/api/pos/' + comandaId + '/vaciar', { method: 'POST' });
+                            const res = await fetch('/api/pos/' + comandaId + '/cancelar', { method: 'POST' });
                             if (res.ok) {
-                                const data = await res.json();
-                                actualizarEstadoDesdeServidor(data);
-                                mostrarAlerta('Se ha borrado toda la comanda correctamente.', 'Comanda vaciada');
+                                const returnUrl = /*[[${tipoServicio == 'RECOGIDA' ? '/recogida' : (tipoServicio == 'DOMICILIO' ? '/domicilio' : '/sala')}]]*/ '/sala';
+                                mostrarAlerta('La comanda ha sido borrada y cancelada correctamente.', 'Comanda borrada', function () {
+                                    window.location.href = returnUrl;
+                                });
                             } else {
                                 const err = await res.text();
-                                mostrarAlerta('Error al vaciar la comanda: ' + err, 'Error');
+                                mostrarAlerta('Error al borrar la comanda: ' + err, 'Error');
+                                btnBorrarComanda.disabled = false;
                             }
                         } catch (err) {
-                            console.error('Error al vaciar comanda:', err);
-                            mostrarAlerta('Error de conexión al vaciar la comanda.', 'Error');
-                        } finally {
+                            console.error('Error al borrar comanda:', err);
+                            mostrarAlerta('Error de conexión al borrar la comanda.', 'Error');
                             btnBorrarComanda.disabled = false;
                         }
-                    }, null, { peligroso: true, titulo: 'Borrar comanda', textoConfirmar: 'Sí, borrar todo' });
+                    }, null, { peligroso: true, titulo: 'Borrar comanda completa', textoConfirmar: 'Sí, borrar comanda' });
                 });
             }
 
@@ -901,6 +992,126 @@
                 modalOverlay.addEventListener('click', function (e) {
                     if (e.target === modalOverlay) modalOverlay.style.display = 'none';
                 });
+            }
+
+            // ── EDICIÓN DE DATOS DE DOMICILIO EN COMANDA ──
+            function abrirModalEditarDomicilio() {
+                const modal = document.getElementById('modal-editar-domicilio');
+                if (!modal) return;
+
+                document.getElementById('edit-domicilio-telefono').value = clienteDomicilioActual.telefono || '';
+                document.getElementById('edit-domicilio-nombre').value = clienteDomicilioActual.nombre || '';
+                document.getElementById('edit-domicilio-direccion').value = clienteDomicilioActual.direccion || '';
+                document.getElementById('edit-domicilio-notas').value = clienteDomicilioActual.notas || '';
+
+                const esMomento = !clienteDomicilioActual.hora || clienteDomicilioActual.hora === 'Al momento';
+                const radios = document.getElementsByName('edit-domicilio-horario-tipo');
+                radios.forEach(r => {
+                    if (r.value === 'momento') r.checked = esMomento;
+                    if (r.value === 'programado') r.checked = !esMomento;
+                });
+                const inpProg = document.getElementById('edit-domicilio-hora-prog');
+                if (inpProg) {
+                    inpProg.style.display = esMomento ? 'none' : 'block';
+                    inpProg.value = esMomento ? '' : clienteDomicilioActual.hora;
+                }
+
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    const telInput = document.getElementById('edit-domicilio-telefono');
+                    if (telInput) telInput.focus();
+                }, 60);
+            }
+
+            function cerrarModalEditarDomicilio() {
+                const modal = document.getElementById('modal-editar-domicilio');
+                if (modal) modal.style.display = 'none';
+            }
+
+            function toggleEditHorario(esProgramado) {
+                const inp = document.getElementById('edit-domicilio-hora-prog');
+                if (inp) {
+                    inp.style.display = esProgramado ? 'block' : 'none';
+                    if (esProgramado) inp.focus();
+                }
+            }
+
+            async function guardarDatosDomicilio(e) {
+                e.preventDefault();
+                const tel = document.getElementById('edit-domicilio-telefono').value.replace(/[^0-9]/g, '').slice(0, 9);
+                const nom = document.getElementById('edit-domicilio-nombre').value.trim();
+                const dir = document.getElementById('edit-domicilio-direccion').value.trim();
+                const not = document.getElementById('edit-domicilio-notas').value.trim();
+
+                if (tel.length !== 9) {
+                    mostrarAlerta('El teléfono debe tener exactamente 9 dígitos numéricos.', 'Teléfono incorrecto');
+                    return;
+                }
+                if (!dir) {
+                    mostrarAlerta('La dirección de entrega es obligatoria.', 'Dirección requerida');
+                    return;
+                }
+
+                let hora = 'Al momento';
+                const radios = document.getElementsByName('edit-domicilio-horario-tipo');
+                let tipoHor = 'momento';
+                radios.forEach(r => { if (r.checked) tipoHor = r.value; });
+                if (tipoHor === 'programado') {
+                    const hProg = document.getElementById('edit-domicilio-hora-prog').value.trim();
+                    hora = hProg ? hProg : 'Al momento';
+                }
+
+                const btnSubmit = document.getElementById('btn-guardar-edit-domicilio');
+                if (btnSubmit) btnSubmit.disabled = true;
+
+                try {
+                    const bodyParams = new URLSearchParams();
+                    bodyParams.append('nombreCliente', nom);
+                    bodyParams.append('telefono', tel);
+                    bodyParams.append('direccion', dir);
+                    bodyParams.append('notasEntrega', not);
+                    bodyParams.append('horaEntrega', hora);
+
+                    const res = await fetch('/api/pos/' + comandaId + '/domicilio-info', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: bodyParams.toString()
+                    });
+
+                    if (res.ok) {
+                        clienteDomicilioActual = { nombre: nom, telefono: tel, direccion: dir, notas: not, hora: hora };
+
+                        const clienteDisp = document.getElementById('domicilio-info-cliente');
+                        if (clienteDisp) clienteDisp.textContent = (nom || 'Cliente') + (tel ? ' · 📞 ' + tel : '');
+
+                        const dirDisp = document.getElementById('domicilio-info-direccion');
+                        if (dirDisp) dirDisp.textContent = '📍 ' + dir;
+
+                        const horaDisp = document.getElementById('domicilio-info-hora');
+                        if (horaDisp) horaDisp.textContent = '⏰ ' + hora;
+
+                        const notasDisp = document.getElementById('domicilio-info-notas');
+                        if (notasDisp) {
+                            if (not) {
+                                notasDisp.textContent = '💬 ' + not;
+                                notasDisp.style.display = 'block';
+                            } else {
+                                notasDisp.style.display = 'none';
+                            }
+                        }
+
+                        cerrarModalEditarDomicilio();
+                        mostrarAlerta('Datos de entrega actualizados correctamente.', 'Guardado');
+                    } else {
+                        const err = await res.text();
+                        mostrarAlerta('Error al actualizar datos: ' + err, 'Error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    mostrarAlerta('Error de conexión al guardar los datos.', 'Error');
+                } finally {
+                    if (btnSubmit) btnSubmit.disabled = false;
+                }
             }
 
             // ── GESTIÓN DE NOTAS Y COMENTARIOS PARA COCINA ──

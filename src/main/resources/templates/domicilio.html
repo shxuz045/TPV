@@ -22,27 +22,17 @@
             <div th:if="${mensajeOk}" class="domicilio-alert domicilio-alert--ok" th:text="${mensajeOk}"></div>
             <div th:if="${mensajeError}" class="domicilio-alert domicilio-alert--error" th:text="${mensajeError}"></div>
 
-            <!-- SI NO HAY PEDIDOS ACTIVOS: pantalla limpia -->
-            <div th:if="${#lists.isEmpty(pedidosActivos)}" class="domicilio-sin-pedidos">
-                <p class="sin-pedidos-texto">No hay pedidos a domicilio activos en este momento.</p>
-                <p class="sin-pedidos-sub">Pulsa en <strong>+ Nuevo Pedido a Domicilio</strong> para registrar una comanda (asigna números libres a partir del 90).</p>
-            </div>
-
-            <!-- SI HAY PEDIDOS: se ven los que hay ya -->
-            <div th:unless="${#lists.isEmpty(pedidosActivos)}" class="domicilio-pedidos-seccion">
-                <div class="domicilio-seccion-header">
-                    <h2 class="domicilio-seccion-titulo">
-                        Pedidos Activos
-                        <span class="badge-contador-pedidos" th:text="${#lists.size(pedidosActivos)}">1</span>
-                    </h2>
-                </div>
-
+            <!-- Pedidos activos -->
+            <div class="domicilio-pedidos-seccion">
                 <div class="domicilio-grid-pedidos">
-                    <div th:each="p : ${pedidosActivos}" class="pedido-domicilio-card">
+                    <div th:each="p : ${pedidosActivos}" class="pedido-domicilio-card"
+                        th:onclick="'window.location.href=\'' + @{/comanda(id=${p.id}, tipo='DOMICILIO')} + '\''"
+                        title="Toca para entrar en la comanda y gestionar el cobro">
                         <!-- Cabecera de la ficha: Número asignado (90, 91...) y hora -->
                         <div class="pedido-head">
                             <span class="pedido-numero-sobrante" th:text="${p.mesa}">Domicilio 90</span>
-                            <span class="pedido-hora-tag" th:classappend="${p.horaEntregaProgramada != 'Al momento'} ? 'hora-tag--programada' : 'hora-tag--momento'">
+                            <span class="pedido-hora-tag"
+                                th:classappend="${p.horaEntregaProgramada != 'Al momento'} ? 'hora-tag--programada' : 'hora-tag--momento'">
                                 <span th:text="${'⏰ ' + p.horaEntregaProgramada}">⏰ Al momento</span>
                             </span>
                         </div>
@@ -50,23 +40,29 @@
                         <!-- Datos del cliente y dirección de entrega -->
                         <div class="pedido-cuerpo">
                             <div class="pedido-nombre" th:text="${p.nombreCliente}">Cliente</div>
-                            <div th:if="${p.telefonoCliente != null and !#strings.isEmpty(p.telefonoCliente)}" class="pedido-telefono">
-                                <a th:href="${'tel:' + p.telefonoCliente}" th:text="${'📞 ' + p.telefonoCliente}">📞 600000000</a>
+                            <div th:if="${p.telefonoCliente != null and !#strings.isEmpty(p.telefonoCliente)}"
+                                class="pedido-telefono">
+                                <a th:href="${'tel:' + p.telefonoCliente}" onclick="event.stopPropagation();"
+                                    th:text="${'📞 ' + p.telefonoCliente}">📞 600000000</a>
                             </div>
-                            <div class="pedido-direccion" th:text="${'📍 ' + p.direccionCliente}">📍 Calle Mayor 12</div>
-                            <div th:if="${p.notasEntrega != null and !#strings.isEmpty(p.notasEntrega)}" class="pedido-notas" th:text="${'💬 ' + p.notasEntrega}">Notas</div>
+                            <div class="pedido-direccion" th:text="${'📍 ' + p.direccionCliente}">📍 Calle Mayor 12
+                            </div>
+                            <div th:if="${p.notasEntrega != null and !#strings.isEmpty(p.notasEntrega)}"
+                                class="pedido-notas" th:text="${'💬 ' + p.notasEntrega}">Notas</div>
                         </div>
 
                         <!-- Resumen de artículos -->
                         <div class="pedido-articulos">
                             <div th:if="${#lists.isEmpty(p.lineas)}" class="articulos-vacio">
-                                ⚠️ Sin platos añadidos todavía
+                                ⚠️ Sin platos añadidos todavía (pulsa para añadir)
                             </div>
                             <ul th:unless="${#lists.isEmpty(p.lineas)}" class="articulos-lista">
                                 <li th:each="l : ${p.lineas}">
                                     <span class="art-cant" th:text="${l.cantidad + 'x'}">1x</span>
-                                    <span class="art-nombre" th:text="${l.producto != null ? l.producto.nombre : 'Plato'}">Arroz</span>
-                                    <span th:if="${l.notas != null and !#strings.isEmpty(l.notas)}" class="art-nota" th:text="${'(' + l.notas + ')'}"></span>
+                                    <span class="art-nombre"
+                                        th:text="${l.producto != null ? l.producto.nombre : 'Plato'}">Arroz</span>
+                                    <span th:if="${l.notas != null and !#strings.isEmpty(l.notas)}" class="art-nota"
+                                        th:text="${'(' + l.notas + ')'}"></span>
                                 </li>
                             </ul>
                         </div>
@@ -77,44 +73,12 @@
                                 <span class="lbl-total">Total:</span>
                                 <span class="val-total" th:text="${#numbers.formatDecimal(p.total, 1, 2) + ' €'}">0.00 €</span>
                             </div>
-                            <div class="pedido-acciones">
-                                <a th:href="@{/comanda(id=${p.id}, tipo='DOMICILIO')}" class="btn-pedido btn-pedido--editar">
-                                    📝 Platos
-                                </a>
-                                <button type="button" class="btn-pedido btn-pedido--cobrar"
-                                    th:data-id="${p.id}"
-                                    th:data-mesa="${p.mesa}"
-                                    th:data-total="${p.total}"
-                                    onclick="abrirModalCobroDesdeBoton(this)">
-                                    💵 Cobrar
-                                </button>
-                                <form th:action="@{/domicilio/{id}/cancelar(id=${p.id})}" method="post"
-                                    onsubmit="return confirm('¿Seguro que deseas cancelar este pedido?')">
-                                    <button type="submit" class="btn-pedido btn-pedido--cancelar" title="Cancelar pedido">✕</button>
-                                </form>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- HISTORIAL RECIENTE (si hay pedidos finalizados) -->
-            <div th:if="${pedidosFinalizados != null and !#lists.isEmpty(pedidosFinalizados)}" class="domicilio-historial-seccion">
-                <details class="historial-desplegable">
-                    <summary class="historial-resumen-btn">
-                        Ver pedidos cobrados / entregados hoy (<span th:text="${#lists.size(pedidosFinalizados)}">0</span>)
-                    </summary>
-                    <div class="historial-lista">
-                        <div th:each="f : ${pedidosFinalizados}" class="historial-item">
-                            <span class="hist-numero" th:text="${f.mesa}">Domicilio 90</span>
-                            <span class="hist-cliente" th:text="${f.nombreCliente + ' · ' + f.direccionCliente}">Cliente · Dirección</span>
-                            <span class="hist-pago" th:text="${f.metodoPago != null ? f.metodoPago : 'Cobrado'}">EFECTIVO</span>
-                            <span class="hist-total" th:text="${#numbers.formatDecimal(f.total, 1, 2) + ' €'}">0.00 €</span>
-                            <a th:href="@{/comanda(id=${f.id}, tipo='DOMICILIO')}" class="hist-link">Ver</a>
-                        </div>
-                    </div>
-                </details>
-            </div>
+        </div>
         </div>
 
         <!-- ========================================================
@@ -124,15 +88,17 @@
             <div class="modal-box modal-box--noti">
                 <div class="noti-icono">✕</div>
                 <h3 class="noti-titulo">Pedido Cancelado</h3>
-                <p class="noti-mensaje" th:text="${'El ' + pedidoCanceladoMesa + ' ha sido cancelado con éxito.'}">Pedido cancelado.</p>
+                <p class="noti-mensaje" th:text="${'El ' + pedidoCanceladoMesa + ' ha sido cancelado con éxito.'}">
+                    Pedido cancelado.</p>
                 <div class="noti-pie">
-                    <button type="button" class="btn-modal btn-modal--confirmar" onclick="cerrarModal('popup-cancelado')">Aceptar</button>
+                    <button type="button" class="btn-modal btn-modal--confirmar"
+                        onclick="cerrarModal('popup-cancelado')">Aceptar</button>
                 </div>
             </div>
         </div>
 
         <!-- ========================================================
-             MODAL: NUEVO PEDIDO A DOMICILIO (SIN EJEMPLOS NI PLACEHOLDERS)
+             MODAL: NUEVO PEDIDO A DOMICILIO
              ======================================================== -->
         <div id="modal-nuevo-pedido" class="modal-overlay">
             <div class="modal-box modal-box--domicilio">
@@ -141,106 +107,108 @@
                     <button type="button" class="modal-cerrar-x" onclick="cerrarModal('modal-nuevo-pedido')">✕</button>
                 </div>
 
-                <form th:action="@{/domicilio/crear}" method="post" class="form-nuevo-domicilio" autocomplete="off" id="form-nuevo-domicilio">
-                    <!-- PASO 1: Teléfono (Primero para verificar si tiene dirección guardada) -->
-                    <div class="form-grupo">
-                        <label class="form-etiqueta" for="input-telefono">Teléfono del cliente *</label>
-                        <div class="tel-input-wrapper">
-                            <input type="tel" name="telefono" id="input-telefono" class="form-input"
-                                   required
-                                   placeholder="Introduce el teléfono..."
-                                   inputmode="numeric"
-                                   pattern="[0-9+ ]*"
-                                   maxlength="15"
-                                   oninput="onTelefonoInput()"
-                                   onblur="comprobarTelefonoActual()"
-                                   autocomplete="off" />
-                            <button type="button" class="btn-comprobar-tel" onclick="comprobarTelefonoActual()">
-                                Comprobar
+                <!-- BUSCADOR DE TELÉFONO -->
+                <div class="form-grupo">
+                    <label class="form-etiqueta" for="input-telefono">📞 Teléfono del cliente (9 dígitos) *</label>
+                    <div class="tel-input-wrapper">
+                        <input type="tel" name="telefono" id="input-telefono" class="form-input form-input--tel-grande"
+                            required placeholder=" " inputmode="numeric" pattern="[0-9]{9}" maxlength="9"
+                            oninput="onTelefonoInput()" autocomplete="off" />
+                        <button type="button" class="btn-comprobar-tel" onclick="comprobarTelefonoActual()"
+                            id="btn-buscar-tel" title="Buscar cliente">
+                            🔍
+                        </button>
+                    </div>
+
+                    <!-- Resultado búsqueda: cliente encontrado o no -->
+                    <div id="tel-resultado" style="display:none; margin-top:10px;"></div>
+                </div>
+
+                <!-- FORMULARIO (oculto hasta conocer el teléfono) -->
+                <form th:action="@{/domicilio/crear}" method="post" class="form-nuevo-domicilio" autocomplete="off"
+                    id="form-nuevo-domicilio">
+                    <input type="hidden" name="telefono" id="hidden-telefono" />
+
+                    <!-- Panel cliente encontrado: nombre + selección de direcciones -->
+                    <div id="panel-cliente-existente" style="display:none;">
+                        <div class="cliente-encontrado-header">
+                            <span id="cliente-nombre-display" class="cliente-nombre-grande"></span>
+                            <button type="button" class="btn-link-inline" onclick="editarNombreCliente()">✏️ editar
+                                nombre</button>
+                        </div>
+                        <div id="input-nombre-edicion" style="display:none; margin-top:6px;" class="form-grupo">
+                            <input type="text" id="input-nombre-cliente" name="nombreCliente" class="form-input"
+                                placeholder="Nombre del cliente" />
+                        </div>
+
+                        <div class="form-grupo" style="margin-top:14px;">
+                            <label class="form-etiqueta">📍 Selecciona dirección de entrega:</label>
+                            <div id="lista-direcciones-guardadas" class="direcciones-lista"></div>
+                            <button type="button" class="btn-nueva-direccion" id="btn-nueva-dir"
+                                onclick="mostrarInputNuevaDireccion()">
+                                + Usar nueva dirección
                             </button>
                         </div>
-                        <div id="tel-aviso-box" class="tel-aviso-box" style="display: none;"></div>
                     </div>
 
-                    <!-- Datos del cliente -->
-                    <div class="form-grupo">
-                        <label class="form-etiqueta" for="input-nombre-cliente">Nombre del cliente (opcional)</label>
-                        <input type="text" name="nombreCliente" id="input-nombre-cliente" class="form-input" />
+                    <!-- Panel cliente nuevo -->
+                    <div id="panel-cliente-nuevo" style="display:none;">
+                        <div class="nuevo-cliente-aviso">
+                            ℹ️ <strong>Cliente nuevo.</strong> Introduce sus datos:
+                        </div>
+                        <div class="form-grupo">
+                            <label class="form-etiqueta" for="input-nombre-nuevo">Nombre (opcional)</label>
+                            <input type="text" id="input-nombre-nuevo" name="nombreCliente" class="form-input"
+                                placeholder="Nombre del cliente" />
+                        </div>
                     </div>
 
-                    <div class="form-grupo">
-                        <label class="form-etiqueta" for="input-direccion-cliente">Dirección de entrega *</label>
-                        <input type="text" name="direccion" id="input-direccion-cliente" required class="form-input" />
+                    <!-- Campo dirección (siempre visible cuando el formulario está activo) -->
+                    <div id="grupo-direccion" class="form-grupo" style="display:none;">
+                        <label class="form-etiqueta" for="input-direccion-cliente">📍 Dirección de entrega *</label>
+                        <input type="text" name="direccion" id="input-direccion-cliente" required class="form-input"
+                            placeholder="Calle, número, piso..." />
                     </div>
 
-                    <div class="form-grupo">
-                        <label class="form-etiqueta" for="input-notas-cliente">Notas de entrega (opcional)</label>
-                        <input type="text" name="notasEntrega" id="input-notas-cliente" class="form-input" />
+                    <!-- Notas -->
+                    <div id="grupo-notas" class="form-grupo" style="display:none;">
+                        <label class="form-etiqueta" for="input-notas-cliente">💬 Notas de entrega (opcional)</label>
+                        <input type="text" name="notasEntrega" id="input-notas-cliente" class="form-input"
+                            placeholder="Timbre roto, dejar en puerta..." />
                     </div>
 
-                    <!-- Horario de entrega -->
-                    <div class="form-grupo">
+                    <!-- Horario -->
+                    <div id="grupo-horario" class="form-grupo" style="display:none;">
                         <label class="form-etiqueta">Horario de entrega:</label>
                         <div class="selector-horario-grupo">
                             <label class="selector-horario-btn">
-                                <input type="radio" name="tipoHorario" value="momento" checked onchange="toggleHorario(false)" />
+                                <input type="radio" name="tipoHorario" value="momento" checked
+                                    onchange="toggleHorario(false)" />
                                 <span>⚡ Para ahora (Inmediato)</span>
                             </label>
                             <label class="selector-horario-btn">
-                                <input type="radio" name="tipoHorario" value="programado" onchange="toggleHorario(true)" />
+                                <input type="radio" name="tipoHorario" value="programado"
+                                    onchange="toggleHorario(true)" />
                                 <span>📅 Programar hora</span>
                             </label>
                         </div>
                         <input type="text" id="input-hora-programada" name="horaProgramada"
-                               class="form-input form-input--hora"
-                               style="display: none; margin-top: 8px;" />
+                            class="form-input form-input--hora" style="display: none; margin-top: 8px;" />
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn-modal btn-modal--cancelar" onclick="cerrarModal('modal-nuevo-pedido')">Cancelar</button>
-                        <button type="submit" class="btn-modal btn-modal--confirmar">Continuar y Añadir Platos →</button>
+                    <div class="modal-footer" id="footer-form" style="display:none;">
+                        <button type="button" class="btn-modal btn-modal--cancelar"
+                            onclick="cerrarModal('modal-nuevo-pedido')">Cancelar</button>
+                        <button type="submit" class="btn-modal btn-modal--confirmar">Continuar y Añadir Platos
+                            →</button>
                     </div>
                 </form>
-            </div>
-        </div>
 
-        <!-- ========================================================
-             MODAL: COBRO DE PEDIDO
-             ======================================================== -->
-        <div id="modal-cobro" class="modal-overlay">
-            <div class="modal-box modal-box--sm">
-                <div class="modal-header">
-                    <h2 class="modal-titulo">Cobrar Pedido a Domicilio</h2>
-                    <button type="button" class="modal-cerrar-x" onclick="cerrarModal('modal-cobro')">✕</button>
+                <!-- Footer mientras solo está el buscador -->
+                <div class="modal-footer" id="footer-solo-buscar">
+                    <button type="button" class="btn-modal btn-modal--cancelar"
+                        onclick="cerrarModal('modal-nuevo-pedido')">Cancelar</button>
                 </div>
-                <form id="form-cobro" method="post" action="">
-                    <div class="cobro-resumen">
-                        <span id="cobro-pedido-nombre" style="font-weight: 800; font-size: 16px;">Domicilio 90</span>
-                        <div class="cobro-total-box">
-                            <span class="cobro-total-label">Total:</span>
-                            <span class="cobro-total-monto" id="cobro-total-val">0.00 €</span>
-                        </div>
-                    </div>
-
-                    <div class="form-grupo">
-                        <label class="form-etiqueta">Método de Pago:</label>
-                        <div class="selector-origen-grupo">
-                            <label class="selector-origen-btn">
-                                <input type="radio" name="metodoPago" value="EFECTIVO" checked />
-                                <span>💵 Efectivo</span>
-                            </label>
-                            <label class="selector-origen-btn">
-                                <input type="radio" name="metodoPago" value="TARJETA" />
-                                <span>💳 Tarjeta</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn-modal btn-modal--cancelar" onclick="cerrarModal('modal-cobro')">Cancelar</button>
-                        <button type="submit" class="btn-modal btn-modal--confirmar">Confirmar Cobro</button>
-                    </div>
-                </form>
             </div>
         </div>
 
@@ -248,6 +216,7 @@
         <script>
             let telDebounceTimer = null;
             let ultimoTelComprobado = '';
+            let clienteActual = null; // datos del cliente encontrado
 
             document.addEventListener('DOMContentLoaded', function () {
                 const btnNuevo = document.getElementById('btn-abrir-modal-nuevo');
@@ -256,13 +225,9 @@
                         abrirModal('modal-nuevo-pedido');
                     });
                 }
-
-                // Auto-cerrar el pop-up de notificación tras 4 segundos
                 const popupCancelado = document.getElementById('popup-cancelado');
                 if (popupCancelado) {
-                    setTimeout(function () {
-                        popupCancelado.style.display = 'none';
-                    }, 4000);
+                    setTimeout(function () { popupCancelado.style.display = 'none'; }, 4000);
                 }
             });
 
@@ -271,12 +236,9 @@
                 if (m) {
                     m.style.display = 'flex';
                     if (id === 'modal-nuevo-pedido') {
+                        resetearFormularioDomicilio();
                         const tel = document.getElementById('input-telefono');
-                        if (tel) {
-                            setTimeout(function () {
-                                tel.focus();
-                            }, 100);
-                        }
+                        if (tel) setTimeout(function () { tel.focus(); }, 100);
                     }
                 }
             }
@@ -285,83 +247,207 @@
                 const m = document.getElementById(id);
                 if (m) m.style.display = 'none';
                 if (id === 'modal-nuevo-pedido') {
-                    ultimoTelComprobado = '';
-                    const avisoBox = document.getElementById('tel-aviso-box');
-                    if (avisoBox) {
-                        avisoBox.style.display = 'none';
-                        avisoBox.innerHTML = '';
-                    }
+                    resetearFormularioDomicilio();
                 }
+            }
+
+            function resetearFormularioDomicilio() {
+                ultimoTelComprobado = '';
+                clienteActual = null;
+                const telInput = document.getElementById('input-telefono');
+                if (telInput) telInput.value = '';
+                ocultarTodo();
+            }
+
+            function ocultarTodo() {
+                ['tel-resultado', 'panel-cliente-existente', 'panel-cliente-nuevo',
+                    'grupo-direccion', 'grupo-notas', 'grupo-horario', 'footer-form'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = 'none';
+                    });
+                const footerBuscar = document.getElementById('footer-solo-buscar');
+                if (footerBuscar) footerBuscar.style.display = 'flex';
+            }
+
+            function mostrarFormularioCompleto() {
+                ['grupo-direccion', 'grupo-notas', 'grupo-horario', 'footer-form'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'block';
+                });
+                const footerBuscar = document.getElementById('footer-solo-buscar');
+                if (footerBuscar) footerBuscar.style.display = 'none';
             }
 
             function onTelefonoInput() {
                 const input = document.getElementById('input-telefono');
                 if (!input) return;
-                input.value = input.value.replace(/[^0-9+ ]/g, '');
-                const digitos = input.value.replace(/[^0-9]/g, '');
+                // Solo números del 0 al 9, nada de negativos, ni signos, ni espacios, máximo 9 caracteres
+                input.value = input.value.replace(/[^0-9]/g, '').slice(0, 9);
+                const digitos = input.value;
 
                 clearTimeout(telDebounceTimer);
-                const avisoBox = document.getElementById('tel-aviso-box');
-                if (digitos.length < 6) {
-                    if (avisoBox) {
-                        avisoBox.style.display = 'none';
-                        avisoBox.innerHTML = '';
-                    }
+                if (digitos.length < 9) {
+                    ocultarTodo();
                     ultimoTelComprobado = '';
                     return;
                 }
-
-                if (digitos.length >= 9) {
-                    telDebounceTimer = setTimeout(function () {
-                        comprobarTelefonoActual();
-                    }, 350);
+                // Al alcanzar exactamente los 9 dígitos, se comprueba automáticamente
+                if (digitos.length === 9) {
+                    telDebounceTimer = setTimeout(function () { comprobarTelefonoActual(); }, 150);
                 }
             }
 
             function comprobarTelefonoActual() {
                 const input = document.getElementById('input-telefono');
                 if (!input) return;
+                input.value = input.value.replace(/[^0-9]/g, '').slice(0, 9);
                 const telefono = input.value.trim();
-                const digitos = telefono.replace(/[^0-9]/g, '');
-                const avisoBox = document.getElementById('tel-aviso-box');
-
-                if (digitos.length < 6) {
-                    if (avisoBox) {
-                        avisoBox.style.display = 'none';
-                        avisoBox.innerHTML = '';
-                    }
+                if (telefono.length !== 9) {
+                    alert('⚠️ El teléfono debe tener exactamente 9 dígitos numéricos (sin signos negativos ni letras).');
+                    input.focus();
                     return;
                 }
-
                 if (telefono === ultimoTelComprobado) return;
                 ultimoTelComprobado = telefono;
 
                 fetch('/domicilio/verificar-telefono?telefono=' + encodeURIComponent(telefono))
                     .then(res => res.json())
+                    .then(data => mostrarResultadoBusqueda(data, telefono))
+                    .catch(err => console.error('Error al verificar teléfono:', err));
+            }
+
+            function mostrarResultadoBusqueda(data, telefono) {
+                // Ocultar todo primero
+                ['panel-cliente-existente', 'panel-cliente-nuevo', 'grupo-direccion', 'grupo-notas', 'grupo-horario', 'footer-form'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+
+                // Poner el teléfono en el hidden
+                const hiddenTel = document.getElementById('hidden-telefono');
+                if (hiddenTel) hiddenTel.value = telefono;
+
+                const footerBuscar = document.getElementById('footer-solo-buscar');
+                if (footerBuscar) footerBuscar.style.display = 'none';
+
+                if (data && data.encontrado) {
+                    clienteActual = data;
+                    mostrarClienteEncontrado(data);
+                } else {
+                    clienteActual = null;
+                    mostrarClienteNuevo();
+                }
+            }
+
+            function mostrarClienteEncontrado(data) {
+                // Mostrar nombre
+                const nombreDisplay = document.getElementById('cliente-nombre-display');
+                if (nombreDisplay) nombreDisplay.textContent = data.nombre || ('📞 ' + data.telefono);
+
+                // Input nombre oculto pero con valor
+                const inputNombre = document.getElementById('input-nombre-cliente');
+                if (inputNombre) inputNombre.value = data.nombre || '';
+
+                // Renderizar lista de direcciones
+                const listaDirs = document.getElementById('lista-direcciones-guardadas');
+                if (listaDirs) {
+                    listaDirs.innerHTML = '';
+                    const dirs = data.direcciones || (data.direccion ? [data.direccion] : []);
+                    dirs.forEach((dir, idx) => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'btn-dir-guardada' + (idx === 0 ? ' btn-dir-guardada--activa' : '');
+                        btn.innerHTML = '<span class="dir-texto">' + escapeHtml(dir) + '</span>'
+                            + '<span class="dir-delete" onclick="eliminarDireccionGuardada(event, \'' + escapeHtml(dir).replace(/'/g, "\\'") + '\')">🗑</span>';
+                        btn.addEventListener('click', function () {
+                            seleccionarDireccion(dir);
+                            listaDirs.querySelectorAll('.btn-dir-guardada').forEach(b => b.classList.remove('btn-dir-guardada--activa'));
+                            btn.classList.add('btn-dir-guardada--activa');
+                        });
+                        listaDirs.appendChild(btn);
+                    });
+                    // Auto-seleccionar la primera
+                    if (dirs.length > 0) seleccionarDireccion(dirs[0]);
+                }
+
+                // Ocultar input nueva dirección
+                const grupoDireccion = document.getElementById('grupo-direccion');
+                if (grupoDireccion) grupoDireccion.style.display = 'none';
+
+                // Mostrar panel existente
+                const panelExistente = document.getElementById('panel-cliente-existente');
+                if (panelExistente) panelExistente.style.display = 'block';
+
+                mostrarFormularioCompleto();
+                // Ocultar grupo dirección porque ya se seleccionó
+                if (grupoDireccion) grupoDireccion.style.display = 'none';
+            }
+
+            function mostrarClienteNuevo() {
+                const panelNuevo = document.getElementById('panel-cliente-nuevo');
+                if (panelNuevo) panelNuevo.style.display = 'block';
+
+                // Limpiar dirección
+                const inputDir = document.getElementById('input-direccion-cliente');
+                if (inputDir) inputDir.value = '';
+
+                mostrarFormularioCompleto();
+            }
+
+            function seleccionarDireccion(dir) {
+                const inputDir = document.getElementById('input-direccion-cliente');
+                if (inputDir) {
+                    inputDir.value = dir;
+                    // Ocultar el input de dirección cuando ya hay una seleccionada
+                    const grupoDireccion = document.getElementById('grupo-direccion');
+                    if (grupoDireccion) grupoDireccion.style.display = 'none';
+                }
+            }
+
+            function mostrarInputNuevaDireccion() {
+                const grupoDireccion = document.getElementById('grupo-direccion');
+                if (grupoDireccion) {
+                    grupoDireccion.style.display = 'block';
+                    const inputDir = document.getElementById('input-direccion-cliente');
+                    if (inputDir) {
+                        inputDir.value = '';
+                        inputDir.focus();
+                    }
+                }
+                // Desmarcar direcciones guardadas
+                const listaDirs = document.getElementById('lista-direcciones-guardadas');
+                if (listaDirs) {
+                    listaDirs.querySelectorAll('.btn-dir-guardada').forEach(b => b.classList.remove('btn-dir-guardada--activa'));
+                }
+            }
+
+            function editarNombreCliente() {
+                const panelEdicion = document.getElementById('input-nombre-edicion');
+                if (panelEdicion) {
+                    panelEdicion.style.display = panelEdicion.style.display === 'none' ? 'block' : 'none';
+                    const inp = document.getElementById('input-nombre-cliente');
+                    if (inp) inp.focus();
+                }
+            }
+
+            function eliminarDireccionGuardada(e, direccion) {
+                e.stopPropagation();
+                const telInput = document.getElementById('input-telefono');
+                const telefono = telInput ? telInput.value.trim() : '';
+                if (!confirm('¿Eliminar esta dirección guardada?\n"' + direccion + '"')) return;
+
+                fetch('/domicilio/cliente/eliminar-direccion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'telefono=' + encodeURIComponent(telefono) + '&direccion=' + encodeURIComponent(direccion)
+                })
+                    .then(res => res.json())
                     .then(data => {
-                        if (!avisoBox) return;
-                        if (data && data.encontrado) {
-                            avisoBox.className = 'tel-aviso-box tel-aviso--encontrado';
-                            avisoBox.innerHTML = '🏠 <strong>Dirección guardada encontrada:</strong> ' +
-                                (data.direccion ? escapeHtml(data.direccion) : '') +
-                                (data.nombre ? ' &mdash; <em>' + escapeHtml(data.nombre) + '</em>' : '');
-                            avisoBox.style.display = 'block';
-
-                            const inputNombre = document.getElementById('input-nombre-cliente');
-                            const inputDir = document.getElementById('input-direccion-cliente');
-                            const inputNotas = document.getElementById('input-notas-cliente');
-
-                            if (inputNombre && data.nombre) inputNombre.value = data.nombre;
-                            if (inputDir && data.direccion) inputDir.value = data.direccion;
-                            if (inputNotas && data.notas) inputNotas.value = data.notas;
-                        } else {
-                            avisoBox.className = 'tel-aviso-box tel-aviso--nuevo';
-                            avisoBox.innerHTML = 'ℹ️ <strong>No hay ninguna dirección guardada</strong> con este teléfono. Introduce los datos del cliente:';
-                            avisoBox.style.display = 'block';
+                        if (data.ok) {
+                            const nuevoData = { encontrado: true, nombre: clienteActual ? clienteActual.nombre : '', telefono: telefono, direcciones: data.direcciones };
+                            clienteActual = nuevoData;
+                            mostrarClienteEncontrado(nuevoData);
                         }
-                    })
-                    .catch(err => {
-                        console.error('Error al verificar teléfono:', err);
                     });
             }
 
@@ -380,20 +466,60 @@
                 }
             }
 
-            function abrirModalCobroDesdeBoton(btn) {
-                const comandaId = btn.getAttribute('data-id');
-                const mesa = btn.getAttribute('data-mesa');
-                const total = btn.getAttribute('data-total');
-                abrirModalCobro(comandaId, mesa, total);
-            }
+            // Validación del formulario antes de enviar y bloqueo de teclas no numéricas
+            document.addEventListener('DOMContentLoaded', function () {
+                const telInput = document.getElementById('input-telefono');
+                if (telInput) {
+                    // Impedir teclear signos negativos (-), +, espacios o letras
+                    telInput.addEventListener('keydown', function (e) {
+                        if (['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'].includes(e.key)) return;
+                        if (e.ctrlKey || e.metaKey) return;
+                        if (!/^[0-9]$/.test(e.key)) {
+                            e.preventDefault();
+                        }
+                    });
+                }
 
-            function abrirModalCobro(comandaId, mesa, total) {
-                const form = document.getElementById('form-cobro');
-                form.action = '/domicilio/' + comandaId + '/cobrar';
-                document.getElementById('cobro-pedido-nombre').textContent = mesa || ('Domicilio #' + comandaId);
-                document.getElementById('cobro-total-val').textContent = (Number(total).toFixed(2)) + ' €';
-                abrirModal('modal-cobro');
-            }
+                const form = document.getElementById('form-nuevo-domicilio');
+                if (form) {
+                    form.addEventListener('submit', function (e) {
+                        const inputTelefono = document.getElementById('input-telefono');
+                        const hiddenTel = document.getElementById('hidden-telefono');
+                        const telVal = (inputTelefono ? inputTelefono.value : (hiddenTel ? hiddenTel.value : '')).replace(/[^0-9]/g, '');
+
+                        if (telVal.length !== 9) {
+                            e.preventDefault();
+                            alert('⚠️ El teléfono debe contener exactamente 9 números positivos.');
+                            if (inputTelefono) inputTelefono.focus();
+                            return;
+                        }
+
+                        if (hiddenTel) hiddenTel.value = telVal;
+
+                        const inputDir = document.getElementById('input-direccion-cliente');
+                        const dir = inputDir ? inputDir.value.trim() : '';
+                        if (!dir) {
+                            e.preventDefault();
+                            alert('⚠️ Selecciona o escribe una dirección de entrega.');
+                            if (inputDir) {
+                                const grupoDireccion = document.getElementById('grupo-direccion');
+                                if (grupoDireccion) grupoDireccion.style.display = 'block';
+                                inputDir.focus();
+                            }
+                            return;
+                        }
+                        // Sincronizar nombre del panel nuevo si aplica
+                        const panelNuevo = document.getElementById('panel-cliente-nuevo');
+                        if (panelNuevo && panelNuevo.style.display !== 'none') {
+                            const inputNombreNuevo = document.getElementById('input-nombre-nuevo');
+                            const inputNombreHidden = document.getElementById('input-nombre-cliente');
+                            if (inputNombreNuevo && inputNombreHidden) {
+                                inputNombreHidden.value = inputNombreNuevo.value;
+                            }
+                        }
+                    });
+                }
+            });
         </script>
     </main>
 </body>

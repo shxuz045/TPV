@@ -1903,11 +1903,15 @@ body {
     flex-direction: column;
     gap: 12px;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
-    transition: transform 0.15s, box-shadow 0.15s;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    cursor: pointer;
+    user-select: none;
 }
 
 .pedido-domicilio-card:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+    transform: translateY(-2px);
+    border-color: #2563eb;
 }
 
 .pedido-head {
@@ -2351,10 +2355,19 @@ body {
     gap: 2px;
     font-size: 12px;
     background-color: #f7f7f7;
-    border: 1px solid #000000;
-    border-radius: 6px;
-    padding: 6px 10px;
+    border: 2px solid #000000;
+    border-radius: 8px;
+    padding: 6px 12px;
     margin-left: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.comanda-domicilio-info:hover {
+    background-color: #eff6ff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
 .comanda-domicilio-cliente {
@@ -3224,4 +3237,102 @@ body {
         color: #000000 !important;
         background: #ffffff !important;
     }
+}
+
+
+/* ===== DOMICILIO: BUSCADOR CLIENTE ===== */
+.form-input--tel-grande {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    height: 54px;
+}
+.cliente-encontrado-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f0fdf4;
+    border: 2px solid #16a34a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+}
+.cliente-nombre-grande {
+    font-size: 18px;
+    font-weight: 800;
+    color: #15803d;
+    flex: 1;
+}
+.btn-link-inline {
+    background: none;
+    border: none;
+    color: #2563eb;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 6px;
+    text-decoration: underline;
+}
+.nuevo-cliente-aviso {
+    background: #eff6ff;
+    border: 1.5px solid #3b82f6;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #1e40af;
+    margin-bottom: 10px;
+}
+.direcciones-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.btn-dir-guardada {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.btn-dir-guardada:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+.btn-dir-guardada--activa {
+    border-color: #16a34a;
+    background: #f0fdf4;
+    color: #15803d;
+}
+.dir-texto { flex: 1; }
+.dir-delete {
+    font-size: 14px;
+    opacity: 0.5;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+.dir-delete:hover { opacity: 1; background: #fee2e2; }
+.btn-nueva-direccion {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px dashed #9ca3af;
+    border-radius: 8px;
+    background: none;
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.btn-nueva-direccion:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #eff6ff;
 }
