@@ -25,12 +25,9 @@
                             onclick="abrirModalEditarDomicilio()"
                             style="cursor: pointer;"
                             title="Toca para editar datos de entrega (dirección, teléfono, notas...)">
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                                <span class="comanda-domicilio-cliente" id="domicilio-info-cliente"
-                                    th:text="${(comanda.nombreCliente != null ? comanda.nombreCliente : 'Cliente') + (comanda.telefonoCliente != null and !#strings.isEmpty(comanda.telefonoCliente) ? ' · 📞 ' + comanda.telefonoCliente : '')}">
-                                    Cliente</span>
-                                <span style="font-size:11px; color:#2563eb; font-weight:800; background:#eff6ff; padding:2px 6px; border-radius:4px; border:1px solid #bfdbfe;">✏️ Editar</span>
-                            </div>
+                            <div class="comanda-domicilio-cliente" id="domicilio-info-cliente"
+                                th:text="${(comanda.nombreCliente != null ? comanda.nombreCliente : 'Cliente') + (comanda.telefonoCliente != null and !#strings.isEmpty(comanda.telefonoCliente) ? ' · 📞 ' + comanda.telefonoCliente : '')}">
+                                Cliente</div>
                             <div class="comanda-domicilio-direccion" id="domicilio-info-direccion" th:text="${'📍 ' + (comanda.direccionCliente != null ? comanda.direccionCliente : '')}">
                                 Dirección</div>
                             <div class="comanda-domicilio-hora" id="domicilio-info-hora" th:text="${'⏰ ' + (comanda.horaEntregaProgramada != null ? comanda.horaEntregaProgramada : 'Al momento')}">Al
@@ -56,6 +53,16 @@
                                 class="comanda-btn-header comanda-btn-header--mesa" id="btn-mover-mesa"
                                 title="Pasar pedido a Mesa de Sala">
                                 Pasar a Mesa
+                            </button>
+                            <button th:if="${tipoServicio == 'RECOGIDA' or tipoServicio == 'SALA'}" type="button"
+                                class="comanda-btn-header comanda-btn-header--domicilio" id="btn-mover-domicilio"
+                                title="Pasar pedido a Domicilio">
+                                Pasar a Domicilio
+                            </button>
+                            <button th:if="${tipoServicio == 'DOMICILIO'}" type="button"
+                                class="comanda-btn-header comanda-btn-header--recogida" id="btn-mover-recogida"
+                                title="Pasar pedido a Recogida">
+                                Pasar a Recogida
                             </button>
                             <button th:if="${tipoServicio == 'SALA'}" type="button"
                                 class="comanda-btn-header comanda-btn-header--mesa" id="btn-cambiar-mesa"
@@ -354,14 +361,90 @@
                                 <span>Programar hora</span>
                             </label>
                         </div>
-                        <input type="text" id="edit-domicilio-hora-prog"
-                               placeholder="Ej: 21:30"
+                        <input type="time" id="edit-domicilio-hora-prog"
+                               min="00:00" max="23:59" step="300"
                                style="display:none; width:100%; height:40px; padding:0 12px; font-size:15px; font-weight:700; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
                     </div>
 
                     <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
                         <button type="button" class="modal-btn modal-btn--cancel" onclick="cerrarModalEditarDomicilio()">Cancelar</button>
                         <button type="submit" class="modal-btn modal-btn--confirm" id="btn-guardar-edit-domicilio">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== MODAL: PASAR A DOMICILIO (con datos de entrega) ===== -->
+        <div id="modal-pasar-domicilio" class="modal-overlay" style="display:none;">
+            <div class="modal-box" style="max-width: 460px; width: 92%; padding: 24px;">
+                <div class="modal-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3 class="modal-title" style="font-size: 19px;">Pasar a Domicilio</h3>
+                        <p class="modal-desc" style="margin-top:2px;">Introduce los datos de entrega del cliente</p>
+                    </div>
+                    <button type="button" class="modal-cerrar-x" onclick="cerrarModalPasarDomicilio()">✕</button>
+                </div>
+
+                <form id="form-pasar-domicilio" onsubmit="confirmarPasarADomicilio(event)">
+                    <!-- Teléfono -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">📞 Teléfono (9 dígitos) *</label>
+                        <input type="tel" id="pasar-dom-telefono"
+                               maxlength="9"
+                               inputmode="numeric"
+                               pattern="[0-9]{9}"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9);"
+                               style="width:100%; height:44px; padding:0 12px; font-size:16px; font-weight:700; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Nombre -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">👤 Nombre del cliente</label>
+                        <input type="text" id="pasar-dom-nombre"
+                               maxlength="80"
+                               style="width:100%; height:44px; padding:0 12px; font-size:15px; font-weight:600; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Dirección -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">📍 Dirección de entrega *</label>
+                        <input type="text" id="pasar-dom-direccion"
+                               required
+                               maxlength="200"
+                               placeholder="Calle, número, piso..."
+                               style="width:100%; height:44px; padding:0 12px; font-size:15px; font-weight:600; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Notas -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">💬 Notas de entrega</label>
+                        <input type="text" id="pasar-dom-notas"
+                               placeholder="Timbre no funciona, dejar en puerta..."
+                               maxlength="200"
+                               style="width:100%; height:44px; padding:0 12px; font-size:14px; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <!-- Horario -->
+                    <div style="margin-bottom: 18px;">
+                        <label style="display:block; font-size:13px; font-weight:800; margin-bottom:4px;">⏰ Horario de entrega</label>
+                        <div style="display:flex; gap:10px; margin-bottom:6px;">
+                            <label style="flex:1; display:flex; align-items:center; gap:6px; padding:8px 12px; border:2px solid #000; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700;">
+                                <input type="radio" name="pasar-dom-horario-tipo" value="momento" onchange="togglePasarDomHorario(false)" checked />
+                                <span>Al momento</span>
+                            </label>
+                            <label style="flex:1; display:flex; align-items:center; gap:6px; padding:8px 12px; border:2px solid #000; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700;">
+                                <input type="radio" name="pasar-dom-horario-tipo" value="programado" onchange="togglePasarDomHorario(true)" />
+                                <span>Programar hora</span>
+                            </label>
+                        </div>
+                        <input type="time" id="pasar-dom-hora"
+                               min="00:00" max="23:59" step="300"
+                               style="display:none; width:100%; height:40px; padding:0 12px; font-size:15px; font-weight:700; border:2px solid #000; border-radius:6px; box-sizing:border-box;" />
+                    </div>
+
+                    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+                        <button type="button" class="modal-btn modal-btn--cancel" onclick="cerrarModalPasarDomicilio()">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn--confirm" id="btn-confirmar-pasar-dom">Pasar a Domicilio</button>
                     </div>
                 </form>
             </div>
@@ -563,11 +646,14 @@
                         const notasArr = l.notas ? l.notas.split(/[,|]/).map(s => s.trim()).filter(Boolean) : [];
                         let tagsHtml = '';
                         notasArr.forEach((nota) => {
-                            tagsHtml += `<span class="comanda-nota-tag">${escapeHtml(nota)}</span>`;
+                            const notaTrad = (window.traducirTexto ? window.traducirTexto(nota) : nota);
+                            tagsHtml += `<span class="comanda-nota-tag">${escapeHtml(notaTrad)}</span>`;
                         });
 
                         const li = document.createElement('li');
                         li.className = 'comanda-line';
+
+                        const nombrePlatoTrad = (window.traducirTexto ? window.traducirTexto(l.nombre) : l.nombre);
 
                         li.innerHTML = `
                             <!-- 1ª Sección: Unidades con controles táctiles integrados -->
@@ -579,7 +665,7 @@
 
                             <!-- 2ª Sección: Nombre del plato y comentarios para cocineros -->
                             <div class="comanda-line__sec-nombre">
-                                <span class="comanda-line__nombre-texto" onclick="editarLineaComanda(${l.id})" title="Toca para modificar opciones o comentarios" style="cursor:pointer;">${escapeHtml(l.nombre)}</span>
+                                <span class="comanda-line__nombre-texto" onclick="editarLineaComanda(${l.id})" title="Toca para modificar opciones o comentarios" style="cursor:pointer;">${escapeHtml(nombrePlatoTrad)}</span>
                                 <div class="comanda-line__notas-container">
                                     ${tagsHtml}
                                 </div>
@@ -875,26 +961,146 @@
             const btnMoverRecogida = document.getElementById('btn-mover-recogida');
             if (btnMoverRecogida) {
                 btnMoverRecogida.addEventListener('click', function () {
-                    mostrarConfirmacion(`¿Pasar el pedido de ${comandaMesa} a Recogida?\nSe asignará automáticamente el primer número de recogida libre.`, async function () {
+                    const lang = document.documentElement.getAttribute('data-lang') || 'es';
+                    const titulo = lang === 'zh' ? '转为自取单' : 'Pasar a Recogida';
+                    const msg = lang === 'zh'
+                        ? `确定要将「${comandaMesa}」转为自取单吗？系统会自动分配取餐号码。`
+                        : `¿Pasar el pedido de ${comandaMesa} a Recogida?\nSe asignará automáticamente el primer número de recogida libre.`;
+                    mostrarConfirmacion(msg, async function () {
                         btnMoverRecogida.disabled = true;
                         try {
                             const res = await fetch('/api/pos/' + comandaId + '/mover-recogida', { method: 'POST' });
                             if (res.ok) {
                                 const data = await res.json();
-                                mostrarAlerta(`Pedido movido a ${data.mesa} correctamente.`, 'Comanda movida', function () {
+                                const okMsg = lang === 'zh' ? `已转为自取单「${data.mesa}」。` : `Pedido movido a ${data.mesa} correctamente.`;
+                                mostrarAlerta(okMsg, titulo, function () {
                                     window.location.href = '/comanda?mesa=' + encodeURIComponent(data.mesa) + '&tipo=RECOGIDA';
                                 });
                             } else {
                                 const err = await res.text();
-                                mostrarAlerta('No se pudo mover a recogida: ' + err, 'Error');
+                                mostrarAlerta((lang === 'zh' ? '转单失败：' : 'No se pudo mover a recogida: ') + err, titulo);
                                 btnMoverRecogida.disabled = false;
                             }
                         } catch (err) {
-                            mostrarAlerta('Error de conexión.', 'Error');
+                            mostrarAlerta(lang === 'zh' ? '网络错误，请重试。' : 'Error de conexión.', titulo);
                             btnMoverRecogida.disabled = false;
                         }
-                    }, null, { titulo: 'Pasar a Recogida', textoConfirmar: 'Pasar a Recogida' });
+                    }, null, { titulo: titulo, textoConfirmar: lang === 'zh' ? '确认转单' : 'Pasar a Recogida' });
                 });
+            }
+
+            // ── Pasar a Domicilio ──
+            const btnMoverDomicilio = document.getElementById('btn-mover-domicilio');
+            if (btnMoverDomicilio) {
+                btnMoverDomicilio.addEventListener('click', function () {
+                    // Limpiar y abrir el modal de datos de entrega
+                    document.getElementById('pasar-dom-telefono').value = '';
+                    document.getElementById('pasar-dom-nombre').value = '';
+                    document.getElementById('pasar-dom-direccion').value = '';
+                    document.getElementById('pasar-dom-notas').value = '';
+                    document.getElementById('pasar-dom-hora').value = '';
+                    document.getElementById('pasar-dom-hora').style.display = 'none';
+                    // reset radio a "Al momento"
+                    document.querySelectorAll('input[name="pasar-dom-horario-tipo"]').forEach(r => {
+                        r.checked = r.value === 'momento';
+                    });
+                    document.getElementById('btn-confirmar-pasar-dom').disabled = false;
+                    // Traducir etiquetas si está en chino
+                    const lang = document.documentElement.getAttribute('data-lang') || 'es';
+                    if (lang === 'zh') {
+                        const title = document.querySelector('#modal-pasar-domicilio .modal-title');
+                        if (title) title.textContent = '转为外卖单';
+                        const desc = document.querySelector('#modal-pasar-domicilio .modal-desc');
+                        if (desc) desc.textContent = '请填写客户的配送信息';
+                        const btnConf = document.getElementById('btn-confirmar-pasar-dom');
+                        if (btnConf) btnConf.textContent = '确认转单';
+                    }
+                    document.getElementById('modal-pasar-domicilio').style.display = 'flex';
+                    setTimeout(() => document.getElementById('pasar-dom-telefono').focus(), 100);
+                });
+            }
+
+            function togglePasarDomHorario(esProgramado) {
+                const inp = document.getElementById('pasar-dom-hora');
+                if (inp) {
+                    inp.style.display = esProgramado ? 'block' : 'none';
+                    if (esProgramado) inp.focus();
+                }
+            }
+
+            function cerrarModalPasarDomicilio() {
+                document.getElementById('modal-pasar-domicilio').style.display = 'none';
+            }
+
+            async function confirmarPasarADomicilio(e) {
+                e.preventDefault();
+                const lang = document.documentElement.getAttribute('data-lang') || 'es';
+                const titulo = lang === 'zh' ? '转为外卖单' : 'Pasar a Domicilio';
+
+                const telefono = document.getElementById('pasar-dom-telefono').value.trim();
+                const nombre   = document.getElementById('pasar-dom-nombre').value.trim();
+                const direccion = document.getElementById('pasar-dom-direccion').value.trim();
+                const notas    = document.getElementById('pasar-dom-notas').value.trim();
+
+                if (!direccion) {
+                    mostrarAlerta(
+                        lang === 'zh' ? '请填写配送地址。' : 'La dirección de entrega es obligatoria.',
+                        lang === 'zh' ? '地址为必填' : 'Dirección requerida'
+                    );
+                    document.getElementById('pasar-dom-direccion').focus();
+                    return;
+                }
+
+                // Hora
+                let hora = 'Al momento';
+                const radios = document.querySelectorAll('input[name="pasar-dom-horario-tipo"]');
+                let tipoHor = 'momento';
+                radios.forEach(r => { if (r.checked) tipoHor = r.value; });
+                if (tipoHor === 'programado') {
+                    const hVal = document.getElementById('pasar-dom-hora').value.trim();
+                    if (!hVal) {
+                        mostrarAlerta(
+                            lang === 'zh' ? '请选择配送时间。' : 'Debes indicar una hora de entrega.',
+                            lang === 'zh' ? '配送时间为必填' : 'Hora requerida'
+                        );
+                        document.getElementById('pasar-dom-hora').focus();
+                        return;
+                    }
+                    hora = hVal;
+                }
+
+                const btn = document.getElementById('btn-confirmar-pasar-dom');
+                if (btn) btn.disabled = true;
+
+                try {
+                    const body = new URLSearchParams();
+                    body.append('telefono', telefono);
+                    body.append('nombre', nombre);
+                    body.append('direccion', direccion);
+                    body.append('notas', notas);
+                    body.append('hora', hora);
+
+                    const res = await fetch('/api/pos/' + comandaId + '/mover-domicilio', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        cerrarModalPasarDomicilio();
+                        const okMsg = lang === 'zh' ? `已转为外卖单「${data.mesa}」。` : `Pedido transferido a ${data.mesa} correctamente.`;
+                        mostrarAlerta(okMsg, titulo, function () {
+                            window.location.href = '/domicilio';
+                        });
+                    } else {
+                        const err = await res.text();
+                        mostrarAlerta((lang === 'zh' ? '转单失败：' : 'No se pudo mover a domicilio: ') + err, titulo);
+                        if (btn) btn.disabled = false;
+                    }
+                } catch (err) {
+                    mostrarAlerta(lang === 'zh' ? '网络错误，请重试。' : 'Error de conexión.', titulo);
+                    if (btn) btn.disabled = false;
+                }
             }
 
             // ── Cambiar Mesa / Pasar a Mesa ──
@@ -1058,7 +1264,12 @@
                 radios.forEach(r => { if (r.checked) tipoHor = r.value; });
                 if (tipoHor === 'programado') {
                     const hProg = document.getElementById('edit-domicilio-hora-prog').value.trim();
-                    hora = hProg ? hProg : 'Al momento';
+                    if (!hProg) {
+                        mostrarAlerta('Debes indicar una hora de entrega.', 'Hora requerida');
+                        document.getElementById('edit-domicilio-hora-prog').focus();
+                        return;
+                    }
+                    hora = hProg;
                 }
 
                 const btnSubmit = document.getElementById('btn-guardar-edit-domicilio');
@@ -1384,7 +1595,7 @@
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'menu-dia-opcion-btn';
-                    btn.textContent = opcion;
+                    btn.textContent = (window.traducirTexto ? window.traducirTexto(opcion) : opcion);
                     if (preseleccionado && preseleccionado === opcion) {
                         btn.classList.add('menu-dia-opcion-btn--activo');
                     }
@@ -1612,7 +1823,7 @@
                         const optBtn = document.createElement('button');
                         optBtn.type = 'button';
                         optBtn.className = 'menu-dia-opcion-btn';
-                        optBtn.textContent = opcion;
+                        optBtn.textContent = (window.traducirTexto ? window.traducirTexto(opcion) : opcion);
                         if (eleccionPrevia === opcion) {
                             optBtn.classList.add('menu-dia-opcion-btn--activo');
                             menuEspecialEleccionSeleccionada = opcion;
@@ -1633,7 +1844,8 @@
                 (datos.fijos || []).forEach(plato => {
                     const chip = document.createElement('div');
                     chip.className = 'menu-especial-plato-chip';
-                    chip.innerHTML = '<span style="color:#16a34a; font-weight:800;">•</span> ' + escapeHtml(plato);
+                    const platoTrad = (window.traducirTexto ? window.traducirTexto(plato) : plato);
+                    chip.innerHTML = '<span style="color:#16a34a; font-weight:800;">•</span> ' + escapeHtml(platoTrad);
                     contFijos.appendChild(chip);
                 });
 
@@ -1670,7 +1882,7 @@
                         const optBtn = document.createElement('button');
                         optBtn.type = 'button';
                         optBtn.className = 'menu-dia-opcion-btn';
-                        optBtn.textContent = opcion;
+                        optBtn.textContent = (window.traducirTexto ? window.traducirTexto(opcion) : opcion);
                         // Preseleccionar la primera opción por defecto
                         if (idx === 0) {
                             optBtn.classList.add('menu-dia-opcion-btn--activo');
@@ -1693,7 +1905,8 @@
                 (datos.fijos || []).forEach(plato => {
                     const chip = document.createElement('div');
                     chip.className = 'menu-especial-plato-chip';
-                    chip.innerHTML = '<span style="color:#16a34a; font-weight:800;">•</span> ' + escapeHtml(plato);
+                    const platoTrad = (window.traducirTexto ? window.traducirTexto(plato) : plato);
+                    chip.innerHTML = '<span style="color:#16a34a; font-weight:800;">•</span> ' + escapeHtml(platoTrad);
                     contFijos.appendChild(chip);
                 });
 
@@ -1804,7 +2017,8 @@
                     btn.type = 'button';
                     btn.className = 'categoria-tab';
                     btn.dataset.cat = cat;
-                    btn.innerHTML = '<span class="cat-tab-nombre">' + escapeHtml(cat) + '</span>';
+                    const catTrad = (window.traducirTexto ? window.traducirTexto(cat) : cat);
+                    btn.innerHTML = '<span class="cat-tab-nombre">' + escapeHtml(catTrad) + '</span>';
                     btn.addEventListener('click', function () {
                         seleccionarCategoria(cat, btn);
                     });
@@ -1829,7 +2043,8 @@
                         var btn = document.createElement('button');
                         btn.type = 'button';
                         btn.className = 'product-btn';
-                        btn.textContent = srcBtn.textContent.trim();
+                        const nombrePlato = srcBtn.dataset.nombre || srcBtn.textContent.trim();
+                        btn.textContent = (window.traducirTexto ? window.traducirTexto(nombrePlato) : nombrePlato);
                         btn.dataset.id = srcBtn.dataset.id;
                         btn.dataset.nombre = srcBtn.dataset.nombre;
                         btn.dataset.precio = srcBtn.dataset.precio;
@@ -1838,6 +2053,27 @@
                         productsGrid.appendChild(btn);
                     });
                 }
+
+                // Escuchar cambio de idioma para actualizar categorías y platos de la comanda
+                window.addEventListener('idiomaCambiado', function () {
+                    // Actualizar textos de tabs de categorías
+                    catGrid.querySelectorAll('.categoria-tab').forEach(function (b) {
+                        var c = b.dataset.cat;
+                        var sp = b.querySelector('.cat-tab-nombre');
+                        if (sp && c) {
+                            sp.textContent = (window.traducirTexto ? window.traducirTexto(c) : c);
+                        }
+                    });
+                    // Re-renderizar platos de categoría actual
+                    if (catActivaActual) {
+                        var tabActiva = catGrid.querySelector('.categoria-tab[data-cat="' + catActivaActual + '"]');
+                        seleccionarCategoria(catActivaActual, tabActiva);
+                    }
+                    // Re-renderizar líneas de comanda
+                    if (typeof renderComanda === 'function') {
+                        renderComanda();
+                    }
+                });
 
                 // Seleccionar primera categoría automáticamente
                 if (categorias.length > 0) {

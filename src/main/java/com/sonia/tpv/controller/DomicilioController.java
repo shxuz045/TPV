@@ -79,13 +79,23 @@ public class DomicilioController {
         }
 
         String telefonoLimpio = clienteService.limpiarTelefono(telefono);
+        String nombreLimpio = nombreCliente != null ? nombreCliente.trim() : "";
+        if (nombreLimpio.contains(",")) {
+            String[] partes = nombreLimpio.split(",");
+            for (String p : partes) {
+                if (!p.trim().isEmpty()) {
+                    nombreLimpio = p.trim();
+                    break;
+                }
+            }
+        }
 
         // Guardar/actualizar cliente en la tabla de clientes
         if (!telefonoLimpio.isBlank()) {
-            clienteService.guardarOActualizar(telefonoLimpio, nombreCliente, direccion);
+            clienteService.guardarOActualizar(telefonoLimpio, nombreLimpio, direccion);
         }
 
-        Comanda comanda = comandaService.crearDomicilio(nombreCliente, telefonoLimpio, direccion, notasEntrega, horaFinal, username);
+        Comanda comanda = comandaService.crearDomicilio(nombreLimpio, telefonoLimpio, direccion, notasEntrega, horaFinal, username);
         flash.addFlashAttribute("mensajeOk", "Pedido " + comanda.getMesa() + " registrado. Añade los platos a continuación.");
 
         return "redirect:/comanda?id=" + comanda.getId() + "&tipo=DOMICILIO";

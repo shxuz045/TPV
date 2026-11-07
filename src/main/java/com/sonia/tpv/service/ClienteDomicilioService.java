@@ -50,7 +50,21 @@ public class ClienteDomicilioService {
         ClienteDomicilio c = opt.get();
         resultado.put("encontrado", true);
         resultado.put("id", c.getId());
-        resultado.put("nombre", c.getNombre() != null ? c.getNombre() : "");
+
+        String nomLimpio = c.getNombre() != null ? c.getNombre().trim() : "";
+        if (nomLimpio.contains(",")) {
+            String[] partes = nomLimpio.split(",");
+            for (String p : partes) {
+                if (!p.trim().isEmpty()) {
+                    nomLimpio = p.trim();
+                    break;
+                }
+            }
+            c.setNombre(nomLimpio);
+            repo.save(c);
+        }
+
+        resultado.put("nombre", nomLimpio);
         resultado.put("telefono", c.getTelefono());
         resultado.put("direcciones", c.getDirecciones());
         // Para compatibilidad con el flujo actual: primera dirección como "direccion"
@@ -73,7 +87,17 @@ public class ClienteDomicilioService {
                 });
 
         if (nombre != null && !nombre.isBlank()) {
-            cliente.setNombre(nombre.trim());
+            String nom = nombre.trim();
+            if (nom.contains(",")) {
+                String[] partes = nom.split(",");
+                for (String p : partes) {
+                    if (!p.trim().isEmpty()) {
+                        nom = p.trim();
+                        break;
+                    }
+                }
+            }
+            cliente.setNombre(nom);
         }
 
         if (direccion != null && !direccion.isBlank()) {

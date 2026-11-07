@@ -6,7 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TPV - Restaurante ChinaTown</title>
-    <link rel="stylesheet" th:href="@{/css/style.css(v='20261107_01')}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v='20261107_03')}">
+    <script th:src="@{/js/i18n.js(v='20261107_05')}"></script>
 </head>
 
 <body>
@@ -22,6 +23,18 @@
         </div>
 
         <div class="header-right">
+            <!-- Selector de idioma (Banderas 🇪🇸 / 🇨🇳) - Toca en cualquier parte para alternar -->
+            <div class="lang-switch-box no-translate" id="lang-switch-box" onclick="alternarIdioma()" role="button" tabindex="0"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();alternarIdioma();}"
+                title="Toca para cambiar idioma (🇪🇸 ⇄ 🇨🇳) / 点击切换语言">
+                <span class="lang-btn active" id="lang-btn-es" title="Español">
+                    <span class="lang-flag">🇪🇸</span>
+                </span>
+                <span class="lang-btn" id="lang-btn-zh" title="中文">
+                    <span class="lang-flag">🇨🇳</span>
+                </span>
+            </div>
+
             <!-- Menú de sesión (se muestra según la cuenta que haya entrado) -->
             <div class="user-menu-container"
                 th:if="${(#authentication != null and #authentication.name != 'anonymousUser') or (cajeroUsername != null and cajeroUsername != '')}">
@@ -87,7 +100,7 @@
     <th:block th:replace="${content}" />
 
     <!-- ===== MODAL GLOBAL DE ALERTAS Y CONFIRMACIONES EN PÁGINA (NADA FUERA) ===== -->
-    <div id="app-global-modal"
+    <div id="app-global-modal" class="no-translate"
         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999999; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
         <div
             style="background:#ffffff; border:2.5px solid #000000; border-radius:12px; padding:28px 32px 24px 32px; max-width:440px; width:92%; box-shadow:0 12px 40px rgba(0,0,0,0.35); text-align:center; box-sizing:border-box;">
@@ -123,22 +136,45 @@
                 ico.textContent = 'ℹ️';
             }
 
-            tit.textContent = titulo || 'Aviso';
-            msg.textContent = texto.replace(/^[⚠️ℹ️✓❌\s]+/, '');
-            btns.innerHTML = '';
+            var titOriginal = titulo || 'Aviso';
+            var msgOriginal = texto.replace(/^[⚠️ℹ️✓❌\s]+/, '');
+
+            var txtTit = titOriginal;
+            var txtMsg = msgOriginal;
+            if (typeof window.traducirTexto === 'function') {
+                try {
+                    txtTit = window.traducirTexto(titOriginal) || titOriginal;
+                    txtMsg = window.traducirTexto(msgOriginal) || msgOriginal;
+                } catch (e) {
+                    console.error('Error traduciendo alerta:', e);
+                }
+            }
+
+            if (tit) tit.textContent = txtTit;
+            if (msg) msg.textContent = txtMsg;
+            if (btns) btns.innerHTML = '';
+
+            var txtBtnOk = 'Entendido';
+            if (typeof window.traducirTexto === 'function') {
+                try {
+                    txtBtnOk = window.traducirTexto('Entendido') || 'Entendido';
+                } catch (e) {}
+            }
 
             var btnOk = document.createElement('button');
             btnOk.type = 'button';
-            btnOk.textContent = 'Entendido';
+            btnOk.textContent = txtBtnOk;
             btnOk.style.cssText = 'padding:10px 24px; background:#000000; color:#ffffff; border:2px solid #000000; border-radius:6px; font-size:14px; font-weight:800; cursor:pointer; min-width:110px;';
             btnOk.onclick = function () {
                 modal.style.display = 'none';
                 if (typeof onCerrar === 'function') onCerrar();
             };
-            btns.appendChild(btnOk);
+            if (btns) btns.appendChild(btnOk);
 
             modal.style.display = 'flex';
-            setTimeout(function () { btnOk.focus(); }, 50);
+            setTimeout(function () {
+                try { btnOk.focus(); } catch (e) {}
+            }, 50);
         };
 
         window.mostrarConfirmacion = function (mensaje, onConfirmar, onCancelar, opciones) {
@@ -151,23 +187,54 @@
             if (!modal) return;
 
             var esPeligroso = !!opciones.peligroso;
-            ico.textContent = esPeligroso ? '⚠️' : '❓';
-            tit.textContent = opciones.titulo || (esPeligroso ? '¿Estás seguro?' : 'Confirmación');
-            msg.textContent = mensaje || '';
-            btns.innerHTML = '';
+            if (ico) ico.textContent = esPeligroso ? '⚠️' : '❓';
+            var defTit = esPeligroso ? '¿Estás seguro?' : 'Confirmación';
+            var titOriginal = opciones.titulo || defTit;
+            var msgOriginal = mensaje || '';
+
+            var txtTit = titOriginal;
+            var txtMsg = msgOriginal;
+            if (typeof window.traducirTexto === 'function') {
+                try {
+                    txtTit = window.traducirTexto(titOriginal) || titOriginal;
+                    txtMsg = window.traducirTexto(msgOriginal) || msgOriginal;
+                } catch (e) {
+                    console.error('Error traduciendo confirmación:', e);
+                }
+            }
+
+            if (tit) tit.textContent = txtTit;
+            if (msg) msg.textContent = txtMsg;
+            if (btns) btns.innerHTML = '';
+
+            var textoCancelOriginal = opciones.textoCancelar || 'Cancelar';
+            var txtBtnCancel = textoCancelOriginal;
+            if (typeof window.traducirTexto === 'function') {
+                try {
+                    txtBtnCancel = window.traducirTexto(textoCancelOriginal) || textoCancelOriginal;
+                } catch (e) {}
+            }
 
             var btnCancelar = document.createElement('button');
             btnCancelar.type = 'button';
-            btnCancelar.textContent = opciones.textoCancelar || 'Cancelar';
+            btnCancelar.textContent = txtBtnCancel;
             btnCancelar.style.cssText = 'padding:10px 20px; background:#ffffff; color:#000000; border:2px solid #000000; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; min-width:95px;';
             btnCancelar.onclick = function () {
                 modal.style.display = 'none';
                 if (typeof onCancelar === 'function') onCancelar();
             };
 
+            var textoConfirmOriginal = opciones.textoConfirmar || 'Sí, continuar';
+            var txtBtnConfirm = textoConfirmOriginal;
+            if (typeof window.traducirTexto === 'function') {
+                try {
+                    txtBtnConfirm = window.traducirTexto(textoConfirmOriginal) || textoConfirmOriginal;
+                } catch (e) {}
+            }
+
             var btnConfirmar = document.createElement('button');
             btnConfirmar.type = 'button';
-            btnConfirmar.textContent = opciones.textoConfirmar || 'Sí, continuar';
+            btnConfirmar.textContent = txtBtnConfirm;
             if (esPeligroso) {
                 btnConfirmar.style.cssText = 'padding:10px 20px; background:#dc2626; color:#ffffff; border:2px solid #dc2626; border-radius:6px; font-size:14px; font-weight:800; cursor:pointer; min-width:110px;';
             } else {
@@ -178,11 +245,15 @@
                 if (typeof onConfirmar === 'function') onConfirmar();
             };
 
-            btns.appendChild(btnCancelar);
-            btns.appendChild(btnConfirmar);
+            if (btns) {
+                btns.appendChild(btnCancelar);
+                btns.appendChild(btnConfirmar);
+            }
 
             modal.style.display = 'flex';
-            setTimeout(function () { btnConfirmar.focus(); }, 50);
+            setTimeout(function () {
+                try { btnConfirmar.focus(); } catch (e) {}
+            }, 50);
         };
 
         // Redirigir window.alert automáticamente al modal en página
@@ -203,8 +274,6 @@
                 if (match && match[1]) {
                     e.preventDefault();
                     e.stopImmediatePropagation();
-                    form.onsubmit = null;
-                    form.removeAttribute('onsubmit');
                     window.mostrarConfirmacion(match[1], function () {
                         form.dataset.modalConfirmed = 'true';
                         form.submit();
@@ -216,7 +285,10 @@
         document.addEventListener('submit', function (e) {
             var form = e.target;
             if (!form || form.tagName !== 'FORM') return;
-            if (form.dataset.modalConfirmed === 'true') return;
+            if (form.dataset.modalConfirmed === 'true') {
+                form.dataset.modalConfirmed = '';
+                return;
+            }
 
             var onsubmitStr = form.getAttribute('onsubmit') || (form.onsubmit ? form.onsubmit.toString() : '');
             if (onsubmitStr && onsubmitStr.includes('confirm(')) {
@@ -224,8 +296,6 @@
                 if (match && match[1]) {
                     e.preventDefault();
                     e.stopImmediatePropagation();
-                    form.onsubmit = null;
-                    form.removeAttribute('onsubmit');
                     window.mostrarConfirmacion(match[1], function () {
                         form.dataset.modalConfirmed = 'true';
                         form.submit();

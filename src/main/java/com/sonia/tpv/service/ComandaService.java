@@ -407,6 +407,71 @@ public class ComandaService {
     }
 
     /**
+     * Mueve una comanda de RECOGIDA/SALA a DOMICILIO.
+     * Asigna automáticamente el primer número de domicilio libre (90-99).
+     * Guarda los datos de entrega proporcionados.
+     */
+    @Transactional
+    public Comanda moverADomicilio(Long comandaId,
+            String nombreCliente,
+            String telefono,
+            String direccion,
+            String notasEntrega,
+            String horaEntrega) {
+        Comanda comanda = obtener(comandaId);
+        if (comanda.getEstado() != EstadoComanda.ABIERTA) {
+            throw new IllegalStateException("La comanda no está abierta");
+        }
+
+        List<Comanda> abiertas = comandaRepository.findByEstadoOrderByFechaCreacionDesc(EstadoComanda.ABIERTA);
+        java.util.Set<String> ocupados = abiertas.stream()
+                .filter(c -> !c.getId().equals(comandaId) && c.getTipoServicio() == TipoServicio.DOMICILIO)
+                .map(Comanda::getMesa)
+                .filter(m -> m != null)
+                .collect(java.util.stream.Collectors.toSet());
+
+        String nuevaMesa = null;
+        for (int i = 90; i <= 99; i++) {
+            String candidato = "Domicilio " + i;
+            if (!ocupados.contains(candidato)) {
+                nuevaMesa = candidato;
+                break;
+            }
+        }
+        if (nuevaMesa == null) {
+            nuevaMesa = "Domicilio " + (90 + ocupados.size());
+        }
+
+        comanda.setTipoServicio(TipoServicio.DOMICILIO);
+        comanda.setMesa(nuevaMesa);
+        if (comanda.getFaseDomicilio() == null) {
+            comanda.setFaseDomicilio(FaseDomicilio.PENDIENTE);
+        }
+
+        // Guardar datos de entrega
+        if (nombreCliente != null && !nombreCliente.isBlank()) {
+            comanda.setNombreCliente(nombreCliente.trim());
+        } else if (comanda.getNombreCliente() == null || comanda.getNombreCliente().isBlank()) {
+            comanda.setNombreCliente("Cliente");
+        }
+        if (telefono != null) {
+            String limpio = telefono.replaceAll("[^0-9]", "");
+            if (limpio.length() > 9) limpio = limpio.substring(0, 9);
+            comanda.setTelefonoCliente(limpio);
+        }
+        if (direccion != null && !direccion.isBlank()) {
+            comanda.setDireccionCliente(direccion.trim());
+        }
+        if (notasEntrega != null) {
+            comanda.setNotasEntrega(notasEntrega.trim());
+        }
+        comanda.setHoraEntregaProgramada(
+                horaEntrega != null && !horaEntrega.isBlank() ? horaEntrega.trim() : "Al momento");
+
+        return comandaRepository.save(comanda);
+    }
+
+    /**
      * Crea un nuevo pedido para Servicio a Domicilio con datos de entrega y origen.
      */
     @Transactional

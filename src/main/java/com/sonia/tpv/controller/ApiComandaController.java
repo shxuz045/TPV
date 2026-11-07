@@ -182,6 +182,22 @@ public class ApiComandaController {
         }
     }
 
+    /** Mueve la comanda actual a domicilio (asigna primer número libre 90-99) */
+    @PostMapping("/{id}/mover-domicilio")
+    public ResponseEntity<?> moverADomicilio(@PathVariable("id") Long id,
+            @RequestParam(value = "telefono",  required = false) String telefono,
+            @RequestParam(value = "nombre",    required = false) String nombre,
+            @RequestParam(value = "direccion", required = false) String direccion,
+            @RequestParam(value = "notas",     required = false) String notas,
+            @RequestParam(value = "hora",      required = false) String hora) {
+        try {
+            Comanda comanda = comandaService.moverADomicilio(id, nombre, telefono, direccion, notas, hora);
+            return ResponseEntity.ok(comanda);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     /**
      * Mueve la comanda a otra mesa libre. Devuelve 409 si la mesa destino está
      * ocupada.

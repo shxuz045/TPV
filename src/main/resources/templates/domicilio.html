@@ -42,8 +42,8 @@
                             <div class="pedido-nombre" th:text="${p.nombreCliente}">Cliente</div>
                             <div th:if="${p.telefonoCliente != null and !#strings.isEmpty(p.telefonoCliente)}"
                                 class="pedido-telefono">
-                                <a th:href="${'tel:' + p.telefonoCliente}" onclick="event.stopPropagation();"
-                                    th:text="${'📞 ' + p.telefonoCliente}">📞 600000000</a>
+                                <span style="text-decoration:none; display:inline-block; margin-right:3px;">📞</span><a th:href="${'tel:' + p.telefonoCliente}" onclick="event.stopPropagation();"
+                                    th:text="${p.telefonoCliente}" style="text-decoration:none;">600000000</a>
                             </div>
                             <div class="pedido-direccion" th:text="${'📍 ' + p.direccionCliente}">📍 Calle Mayor 12
                             </div>
@@ -61,7 +61,7 @@
                                     <span class="art-cant" th:text="${l.cantidad + 'x'}">1x</span>
                                     <span class="art-nombre"
                                         th:text="${l.producto != null ? l.producto.nombre : 'Plato'}">Arroz</span>
-                                    <span th:if="${l.notas != null and !#strings.isEmpty(l.notas)}" class="art-nota"
+                                    <span th:if="${l.notas != null and !#strings.isEmpty(l.notas) and !(l.producto != null and (#strings.containsIgnoreCase(l.producto.nombre, 'menú') or #strings.containsIgnoreCase(l.producto.nombre, 'menu') or (l.producto.categoria != null and (#strings.containsIgnoreCase(l.producto.categoria, 'menú') or #strings.containsIgnoreCase(l.producto.categoria, 'menu'))))) and !#strings.contains(l.notas, '1º:') and !#strings.contains(l.notas, 'Elección:') and !#strings.contains(l.notas, 'Eleccion:')}" class="art-nota"
                                         th:text="${'(' + l.notas + ')'}"></span>
                                 </li>
                             </ul>
@@ -128,6 +128,7 @@
                 <form th:action="@{/domicilio/crear}" method="post" class="form-nuevo-domicilio" autocomplete="off"
                     id="form-nuevo-domicilio">
                     <input type="hidden" name="telefono" id="hidden-telefono" />
+                    <input type="hidden" name="nombreCliente" id="hidden-nombre-cliente" />
 
                     <!-- Panel cliente encontrado: nombre + selección de direcciones -->
                     <div id="panel-cliente-existente" style="display:none;">
@@ -137,7 +138,7 @@
                                 nombre</button>
                         </div>
                         <div id="input-nombre-edicion" style="display:none; margin-top:6px;" class="form-grupo">
-                            <input type="text" id="input-nombre-cliente" name="nombreCliente" class="form-input"
+                            <input type="text" id="input-nombre-cliente" class="form-input"
                                 placeholder="Nombre del cliente" />
                         </div>
 
@@ -158,7 +159,7 @@
                         </div>
                         <div class="form-grupo">
                             <label class="form-etiqueta" for="input-nombre-nuevo">Nombre (opcional)</label>
-                            <input type="text" id="input-nombre-nuevo" name="nombreCliente" class="form-input"
+                            <input type="text" id="input-nombre-nuevo" class="form-input"
                                 placeholder="Nombre del cliente" />
                         </div>
                     </div>
@@ -192,8 +193,9 @@
                                 <span>📅 Programar hora</span>
                             </label>
                         </div>
-                        <input type="text" id="input-hora-programada" name="horaProgramada"
-                            class="form-input form-input--hora" style="display: none; margin-top: 8px;" />
+                        <input type="time" id="input-hora-programada" name="horaProgramada"
+                            class="form-input form-input--hora" style="display: none; margin-top: 8px;"
+                            min="00:00" max="23:59" step="300" />
                     </div>
 
                     <div class="modal-footer" id="footer-form" style="display:none;">
@@ -303,8 +305,9 @@
                 input.value = input.value.replace(/[^0-9]/g, '').slice(0, 9);
                 const telefono = input.value.trim();
                 if (telefono.length !== 9) {
-                    alert('⚠️ El teléfono debe tener exactamente 9 dígitos numéricos (sin signos negativos ni letras).');
-                    input.focus();
+                    window.mostrarAlerta('El teléfono debe tener exactamente 9 dígitos numéricos (sin signos negativos ni letras).', 'Teléfono incorrecto', function () {
+                        if (input) input.focus();
+                    });
                     return;
                 }
                 if (telefono === ultimoTelComprobado) return;
@@ -340,13 +343,20 @@
             }
 
             function mostrarClienteEncontrado(data) {
+                // Limpiar comas duplicadas si existieran por envíos anteriores
+                let nombreLimpio = (data.nombre || '').trim();
+                if (nombreLimpio.includes(',')) {
+                    nombreLimpio = nombreLimpio.split(',')[0].trim();
+                }
+                data.nombre = nombreLimpio;
+
                 // Mostrar nombre
                 const nombreDisplay = document.getElementById('cliente-nombre-display');
-                if (nombreDisplay) nombreDisplay.textContent = data.nombre || ('📞 ' + data.telefono);
+                if (nombreDisplay) nombreDisplay.textContent = nombreLimpio || ('📞 ' + data.telefono);
 
                 // Input nombre oculto pero con valor
                 const inputNombre = document.getElementById('input-nombre-cliente');
-                if (inputNombre) inputNombre.value = data.nombre || '';
+                if (inputNombre) inputNombre.value = nombreLimpio || '';
 
                 // Renderizar lista de direcciones
                 const listaDirs = document.getElementById('lista-direcciones-guardadas');
@@ -434,21 +444,22 @@
                 e.stopPropagation();
                 const telInput = document.getElementById('input-telefono');
                 const telefono = telInput ? telInput.value.trim() : '';
-                if (!confirm('¿Eliminar esta dirección guardada?\n"' + direccion + '"')) return;
 
-                fetch('/domicilio/cliente/eliminar-direccion', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'telefono=' + encodeURIComponent(telefono) + '&direccion=' + encodeURIComponent(direccion)
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.ok) {
-                            const nuevoData = { encontrado: true, nombre: clienteActual ? clienteActual.nombre : '', telefono: telefono, direcciones: data.direcciones };
-                            clienteActual = nuevoData;
-                            mostrarClienteEncontrado(nuevoData);
-                        }
-                    });
+                window.mostrarConfirmacion('¿Eliminar esta dirección guardada?\n"' + direccion + '"', function () {
+                    fetch('/domicilio/cliente/eliminar-direccion', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'telefono=' + encodeURIComponent(telefono) + '&direccion=' + encodeURIComponent(direccion)
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.ok) {
+                                const nuevoData = { encontrado: true, nombre: clienteActual ? clienteActual.nombre : '', telefono: telefono, direcciones: data.direcciones };
+                                clienteActual = nuevoData;
+                                mostrarClienteEncontrado(nuevoData);
+                            }
+                        });
+                }, null, { peligroso: true, titulo: '¿Eliminar dirección?' });
             }
 
             function escapeHtml(text) {
@@ -489,8 +500,9 @@
 
                         if (telVal.length !== 9) {
                             e.preventDefault();
-                            alert('⚠️ El teléfono debe contener exactamente 9 números positivos.');
-                            if (inputTelefono) inputTelefono.focus();
+                            window.mostrarAlerta('El teléfono debe contener exactamente 9 números positivos.', 'Teléfono incorrecto', function () {
+                                if (inputTelefono) inputTelefono.focus();
+                            });
                             return;
                         }
 
@@ -500,23 +512,51 @@
                         const dir = inputDir ? inputDir.value.trim() : '';
                         if (!dir) {
                             e.preventDefault();
-                            alert('⚠️ Selecciona o escribe una dirección de entrega.');
-                            if (inputDir) {
-                                const grupoDireccion = document.getElementById('grupo-direccion');
-                                if (grupoDireccion) grupoDireccion.style.display = 'block';
-                                inputDir.focus();
-                            }
+                            window.mostrarAlerta('Selecciona o escribe una dirección de entrega.', 'Dirección requerida', function () {
+                                if (inputDir) {
+                                    const grupoDireccion = document.getElementById('grupo-direccion');
+                                    if (grupoDireccion) grupoDireccion.style.display = 'block';
+                                    inputDir.focus();
+                                }
+                            });
                             return;
                         }
-                        // Sincronizar nombre del panel nuevo si aplica
+                        // Validar hora si es programado
+                        const radiosHorario = document.getElementsByName('tipoHorario');
+                        let tipoHorario = 'momento';
+                        radiosHorario.forEach(r => { if (r.checked) tipoHorario = r.value; });
+                        if (tipoHorario === 'programado') {
+                            const inpHora = document.getElementById('input-hora-programada');
+                            if (!inpHora || !inpHora.value) {
+                                e.preventDefault();
+                                window.mostrarAlerta('Debes indicar una hora de entrega.', 'Hora requerida');
+                                if (inpHora) inpHora.focus();
+                                return;
+                            }
+                        }
+                        // Determinar y asignar el nombre del cliente al campo hidden único
+                        const hiddenNombre = document.getElementById('hidden-nombre-cliente');
+                        let nombreFinal = '';
+
                         const panelNuevo = document.getElementById('panel-cliente-nuevo');
                         if (panelNuevo && panelNuevo.style.display !== 'none') {
                             const inputNombreNuevo = document.getElementById('input-nombre-nuevo');
-                            const inputNombreHidden = document.getElementById('input-nombre-cliente');
-                            if (inputNombreNuevo && inputNombreHidden) {
-                                inputNombreHidden.value = inputNombreNuevo.value;
+                            nombreFinal = inputNombreNuevo ? inputNombreNuevo.value.trim() : '';
+                        } else {
+                            const inputNombreCliente = document.getElementById('input-nombre-cliente');
+                            if (inputNombreCliente && inputNombreCliente.value.trim()) {
+                                nombreFinal = inputNombreCliente.value.trim();
+                            } else if (clienteActual && clienteActual.nombre) {
+                                nombreFinal = clienteActual.nombre.trim();
                             }
                         }
+
+                        // Asegurar que no contenga comas duplicadas
+                        if (nombreFinal.includes(',')) {
+                            nombreFinal = nombreFinal.split(',')[0].trim();
+                        }
+
+                        if (hiddenNombre) hiddenNombre.value = nombreFinal;
                     });
                 }
             });
