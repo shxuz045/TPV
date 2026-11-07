@@ -144,10 +144,12 @@ public class HomeController {
 
         // Asegurar que existan los menús del día si la base de datos no los tenía
         if (productoRepository.findByNombre("Menú del Día Estándar").isEmpty()) {
-            productoRepository.save(new Producto("Menú del Día Estándar", new java.math.BigDecimal("13.45"), "Menú del Día", 900));
+            productoRepository.save(
+                    new Producto("Menú del Día Estándar", new java.math.BigDecimal("13.45"), "Menú del Día", 900));
         }
         if (productoRepository.findByNombre("Menú del Día Premium").isEmpty()) {
-            productoRepository.save(new Producto("Menú del Día Premium", new java.math.BigDecimal("14.95"), "Menú del Día", 901));
+            productoRepository
+                    .save(new Producto("Menú del Día Premium", new java.math.BigDecimal("14.95"), "Menú del Día", 901));
         }
 
         List<Producto> productos = productoRepository.findByDisponibleTrueOrderByOrdenAsc();
